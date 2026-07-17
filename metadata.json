@@ -1,0 +1,6 @@
+{
+  "name": "Plataforma de Venda de Bilhetes",
+  "description": "Uma plataforma SaaS moderna para criação de eventos, venda de bilhetes com QR Code, área de cliente, área de organizador e painel de administração.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

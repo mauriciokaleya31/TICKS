@@ -1,0 +1,188 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isUserRole(role) {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             getUserData().role == role;
+    }
+
+    function isAdmin() {
+      return isUserRole('Administrador');
+    }
+
+    function isOrganizer() {
+      return isUserRole('Organizador');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Validation schemas
+    function isValidUser(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 128 &&
+             data.email is string && data.email.size() <= 128 &&
+             data.role is string && (data.role == 'Cliente' || data.role == 'Organizador' || data.role == 'Administrador') &&
+             data.status is string && (data.status == 'Ativo' || data.status == 'Suspenso');
+    }
+
+    function isValidEvent(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 256 &&
+             data.category is string && data.category.size() <= 128 &&
+             data.type is string &&
+             data.location is string && data.location.size() <= 256 &&
+             data.organizerId is string &&
+             data.ticketTypes is list;
+    }
+
+    function isValidOrder(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.orderNumber is string && data.orderNumber.size() <= 64 &&
+             data.userId is string &&
+             data.eventId is string &&
+             data.ticketTypeId is string &&
+             data.quantity is number && data.quantity > 0 &&
+             data.totalPrice is number && data.totalPrice >= 0 &&
+             data.status is string &&
+             data.tickets is list;
+    }
+
+    function isValidCoupon(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.code is string && data.code.size() <= 64 &&
+             data.discountType is string && (data.discountType == 'percentage' || data.discountType == 'fixed') &&
+             data.discountValue is number && data.discountValue >= 0 &&
+             data.usedCount is number && data.usedCount >= 0 &&
+             data.active is bool;
+    }
+
+    function isValidReview(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.eventId is string &&
+             data.userId is string &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.comment is string && data.comment.size() <= 1024;
+    }
+
+    function isValidBlogPost(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 256 &&
+             data.content is string && data.content.size() <= 100000 &&
+             data.author is string && data.author.size() <= 128;
+    }
+
+    function isValidFAQItem(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.question is string && data.question.size() <= 512 &&
+             data.answer is string && data.answer.size() <= 2048 &&
+             data.category is string;
+    }
+
+    function isValidCMSConfig(data) {
+      return data.header is map &&
+             data.slides is list &&
+             data.categories is list &&
+             data.footer is map &&
+             data.pages is list &&
+             data.paymentMethods is list;
+    }
+
+    // --- RULES FOR COLLECTIONS ---
+
+    // 1. User Profiles
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isSignedIn() && (
+        (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role && request.resource.data.status == resource.data.status) || 
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // 2. Events Database
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isSignedIn() && (isOrganizer() || isAdmin()) && isValidEvent(request.resource.data);
+      allow update: if isSignedIn() && (
+        (resource.data.organizerId == request.auth.uid && isValidEvent(request.resource.data) && request.resource.data.approved == resource.data.approved && request.resource.data.featured == resource.data.featured) || 
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // 3. Orders & Tickets
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isAdmin() || 
+        isOrganizer()
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidOrder(request.resource.data);
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        isOrganizer() || 
+        (resource.data.userId == request.auth.uid && request.resource.data.status == 'REEMBOLSADO' && resource.data.status == 'COMPLETADO')
+      );
+      allow delete: if isAdmin();
+    }
+
+    // 4. Promotional Coupons
+    match /coupons/{couponId} {
+      allow read: if true; // Public access to apply at checkout
+      allow create, update: if isSignedIn() && (isOrganizer() || isAdmin()) && isValidCoupon(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // 5. Event Reviews
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidReview(request.resource.data);
+      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId && isValidReview(request.resource.data)) || isAdmin();
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId) || isAdmin();
+    }
+
+    // 6. Blog Articles
+    match /blogs/{blogId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidBlogPost(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // 7. FAQ Items
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidFAQItem(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // 8. CMS Configuration
+    match /cms_configs/{configId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidCMSConfig(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}

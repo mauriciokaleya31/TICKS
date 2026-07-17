@@ -1,0 +1,185 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile in the TicketAngola platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["Cliente", "Organizador", "Administrador"] },
+        "avatar": { "type": "string" },
+        "phone": { "type": "string" },
+        "registeredAt": { "type": "string" },
+        "status": { "type": "string", "enum": ["Ativo", "Suspenso"] }
+      },
+      "required": ["id", "name", "email", "role", "registeredAt", "status"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "An event hosted on TicketAngola",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "summary": { "type": "string" },
+        "category": { "type": "string" },
+        "type": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "location": { "type": "string" },
+        "city": { "type": "string" },
+        "image": { "type": "string" },
+        "gallery": { "type": "array" },
+        "videoUrl": { "type": "string" },
+        "organizerId": { "type": "string" },
+        "organizerName": { "type": "string" },
+        "ticketTypes": { "type": "array" },
+        "featured": { "type": "boolean" },
+        "popular": { "type": "boolean" },
+        "approved": { "type": "boolean" }
+      },
+      "required": ["id", "title", "category", "type", "date", "location", "organizerId", "ticketTypes", "approved"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A ticket purchase order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "eventId": { "type": "string" },
+        "eventTitle": { "type": "string" },
+        "eventDate": { "type": "string" },
+        "eventLocation": { "type": "string" },
+        "ticketTypeId": { "type": "string" },
+        "ticketTypeName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "discountAmount": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "tickets": { "type": "array" }
+      },
+      "required": ["id", "orderNumber", "userId", "eventId", "ticketTypeId", "quantity", "totalPrice", "status", "createdAt", "tickets"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Discount coupon for events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "discountType": { "type": "string" },
+        "discountValue": { "type": "number" },
+        "minOrderValue": { "type": "number" },
+        "maxUses": { "type": "number" },
+        "usedCount": { "type": "number" },
+        "eventId": { "type": "string" },
+        "expiryDate": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "code", "discountType", "discountValue", "usedCount", "expiryDate", "active"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "User review of an event",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "eventId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "eventId", "userId", "rating", "comment", "createdAt"]
+    },
+    "BlogPost": {
+      "title": "BlogPost",
+      "description": "Blog post published in TicketAngola",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "image": { "type": "string" },
+        "category": { "type": "string" },
+        "author": { "type": "string" },
+        "publishedAt": { "type": "string" },
+        "readTime": { "type": "string" },
+        "views": { "type": "number" }
+      },
+      "required": ["id", "title", "content", "publishedAt", "author"]
+    },
+    "FAQItem": {
+      "title": "FAQItem",
+      "description": "Frequently Asked Question item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "question", "answer", "category"]
+    },
+    "CMSConfig": {
+      "title": "CMSConfig",
+      "description": "Configuration for the landing page elements and public options",
+      "type": "object",
+      "properties": {
+        "header": { "type": "object" },
+        "slides": { "type": "array" },
+        "categories": { "type": "array" },
+        "footer": { "type": "object" },
+        "pages": { "type": "array" },
+        "paymentMethods": { "type": "array" }
+      },
+      "required": ["header", "slides", "categories", "footer", "pages", "paymentMethods"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/events/{eventId}": {
+      "schema": "Event",
+      "description": "Events database"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Ticket sales and orders"
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Promotional discount codes"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Event reviews and ratings"
+    },
+    "/blogs/{blogId}": {
+      "schema": "BlogPost",
+      "description": "Company and community blog articles"
+    },
+    "/faqs/{faqId}": {
+      "schema": "FAQItem",
+      "description": "Frequently asked questions"
+    },
+    "/cms_configs/{configId}": {
+      "schema": "CMSConfig",
+      "description": "CMS page configuration"
+    }
+  }
+}

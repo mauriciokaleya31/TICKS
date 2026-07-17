@@ -1,0 +1,242 @@
+@import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Red Hat Display", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Helvetica", "Arial Black", "Arial", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ==========================================================================
+   Official Branding & Palette Design (SaaS Production Ready)
+   Verde: #2B7A5D | Verde/Lima: #DCE82D | Coral: #E26850 | Preto: #000000 | Branco: #FFFFFF
+   ========================================================================== */
+
+/* Outer Body & Base Shell Layouts */
+body,
+html,
+#website-public-container,
+#client-area-panel,
+#organizer-area-panel,
+#admin-panel-portal {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  font-family: "Red Hat Display", sans-serif;
+}
+
+/* Card & Interactive Component Backgrounds */
+.bg-white,
+.bg-gray-50,
+.bg-gray-55,
+.bg-gray-100,
+aside.bg-white,
+div.bg-white,
+aside.bg-gray-50,
+div.bg-gray-50 {
+  background-color: #0c0d0e !important;
+  color: #ffffff !important;
+}
+
+/* Nested section backgrounds & stripe backgrounds */
+.bg-gray-100\/50,
+.bg-gray-50\/50,
+section.bg-gray-100\/50 {
+  background-color: #000000 !important;
+}
+
+/* Inputs, Dropdowns & Selection Fields */
+input,
+select,
+textarea {
+  background-color: #121416 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #DCE82D !important;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(220, 232, 45, 0.2);
+}
+
+/* Border overrides to subtle off-white lines */
+.border-gray-100,
+.border-gray-150,
+.border-gray-200,
+.border-gray-250,
+.border-gray-300,
+.border-gray-150\/50,
+.border-gray-200\/50,
+.border-b-gray-100,
+.border-b-gray-200,
+.border-t-gray-100 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Table rows hover states */
+.hover\:bg-gray-50\/50:hover,
+tr.hover\:bg-gray-50\/50:hover,
+.hover\:bg-gray-55:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ==========================================================================
+   Typography Overrides
+   ========================================================================== */
+
+/* Main titles & headers - Helvetica Black font mapping */
+h1, h2, h3, h4, h5, h6,
+.text-gray-950,
+.text-gray-900,
+.text-gray-850,
+.text-gray-800 {
+  color: #ffffff !important;
+  font-family: "Helvetica", "Arial Black", "Arial", sans-serif !important;
+  font-weight: 900 !important;
+}
+
+/* Body / descriptive text */
+.text-gray-700,
+.text-gray-650,
+.text-gray-600,
+.text-gray-500,
+p.text-gray-500,
+p.text-gray-600 {
+  color: #a0aec0 !important;
+  font-family: "Red Hat Display", sans-serif !important;
+}
+
+/* Tiny metadata descriptions */
+.text-gray-400 {
+  color: #718096 !important;
+}
+
+/* ==========================================================================
+   Branding Accents Integration (Primary: #2B7A5D, Active Accent: #DCE82D, Alert/Coral: #E26850)
+   ========================================================================== */
+
+/* Accent Green / Primary branding */
+.text-indigo-600,
+.text-indigo-650,
+.text-indigo-700,
+.text-indigo-500,
+.text-indigo-400,
+.group-hover\:text-indigo-600:hover,
+.hover\:text-indigo-600:hover,
+.hover\:text-indigo-650:hover {
+  color: #2B7A5D !important;
+}
+
+/* Active Highlight Amber replaced by Green/Lima or Coral */
+.text-amber-500,
+.text-amber-400,
+.text-amber-600 {
+  color: #DCE82D !important;
+}
+
+/* Primary buttons and badges (Verde #2B7A5D) */
+.bg-indigo-600,
+.bg-indigo-650,
+.bg-indigo-700,
+.bg-indigo-500 {
+  background-color: #2B7A5D !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.bg-indigo-600:hover,
+.bg-indigo-650:hover,
+.bg-indigo-700:hover,
+.bg-indigo-500:hover {
+  background-color: #379472 !important;
+  color: #ffffff !important;
+}
+
+/* Lime Green / Accent buttons (Verde/Lima #DCE82D) */
+.bg-amber-500,
+.bg-amber-400,
+.bg-amber-600 {
+  background-color: #DCE82D !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+.bg-amber-500:hover,
+.bg-amber-400:hover,
+.bg-amber-600:hover {
+  background-color: #edf55f !important;
+  color: #000000 !important;
+}
+
+/* Coral Warning or secondary alerts (#E26850) */
+.text-red-500,
+.text-red-600,
+.text-red-400 {
+  color: #E26850 !important;
+}
+
+.bg-red-500,
+.bg-red-600,
+.bg-red-700 {
+  background-color: #E26850 !important;
+  color: #ffffff !important;
+}
+
+.bg-red-500:hover,
+.bg-red-600:hover,
+.bg-red-700:hover {
+  background-color: #f17f69 !important;
+  color: #ffffff !important;
+}
+
+/* Sub-badges with translucent backdrops */
+.bg-indigo-50,
+.bg-indigo-50\/50,
+.bg-indigo-500\/10,
+.bg-amber-550\/10 {
+  background-color: rgba(43, 122, 93, 0.15) !important;
+  color: #DCE82D !important;
+  border: 1px solid rgba(220, 232, 45, 0.2) !important;
+}
+
+.border-indigo-500,
+.border-indigo-600,
+.border-indigo-200,
+.border-indigo-100 {
+  border-color: rgba(43, 122, 93, 0.3) !important;
+}
+
+.border-amber-500,
+.border-amber-400 {
+  border-color: rgba(220, 232, 45, 0.3) !important;
+}
+
+/* Contrast button adaptation for dark background compatibility */
+button.bg-gray-900 {
+  background-color: #121416 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+button.bg-gray-900:hover {
+  background-color: #1d2024 !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   QR Code Scannability Protection
+   ========================================================================== */
+.qr-code-container-white {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.qr-code-container-white svg {
+  color: #000000 !important;
+}
+
+.qr-code-container-white svg rect {
+  fill: #ffffff !important;
+}
