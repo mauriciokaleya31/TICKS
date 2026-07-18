@@ -412,9 +412,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (userDoc.exists()) {
             const data = userDoc.data() as User;
             const emailLower = firebaseUser.email?.toLowerCase();
-            const expectedRole = emailLower === "admin@gmail.com" 
+            const expectedRole = (emailLower === "admin@gmail.com" || emailLower === "kaleyapt@gmail.com")
               ? UserRole.ADMIN 
-              : emailLower === "organizador@gmail.com" 
+              : (emailLower === "organizador@gmail.com" || emailLower === "producer@gmail.com")
                 ? UserRole.ORGANIZADOR 
                 : data.role;
             
@@ -428,9 +428,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } else {
             // Profile doesn't exist yet, construct and write
             const emailLower = firebaseUser.email?.toLowerCase();
-            const fallbackRole = emailLower === "admin@gmail.com" 
+            const fallbackRole = (emailLower === "admin@gmail.com" || emailLower === "kaleyapt@gmail.com")
               ? UserRole.ADMIN 
-              : emailLower === "organizador@gmail.com" 
+              : (emailLower === "organizador@gmail.com" || emailLower === "producer@gmail.com")
                 ? UserRole.ORGANIZADOR 
                 : UserRole.CLIENTE;
 

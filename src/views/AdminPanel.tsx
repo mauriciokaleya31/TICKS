@@ -179,7 +179,12 @@ export default function AdminPanel() {
 
   // Pending approval events queue
   const pendingEventsQueue = useMemo(() => {
-    return events.filter(e => !e.approved);
+    return events.filter(e => !e.approved && !e.rejected);
+  }, [events]);
+
+  // Rejected events list
+  const rejectedEventsList = useMemo(() => {
+    return events.filter(e => e.rejected);
   }, [events]);
 
   // Pending manual bank payment orders
@@ -519,6 +524,49 @@ export default function AdminPanel() {
                     ))}
                   </div>
                 </div>
+
+                {/* Listing of currently rejected Events awaiting correction */}
+                {rejectedEventsList.length > 0 && (
+                  <div className="space-y-4 pt-6 border-t border-gray-150">
+                    <h4 className="text-sm font-bold text-red-650 text-left">Lista de Espetáculos Recusados (Aguardando Correção)</h4>
+                    <div className="grid grid-cols-1 gap-3">
+                      {rejectedEventsList.map((evt) => (
+                        <div key={evt.id} className="bg-white p-4 rounded-xl border border-red-100 flex items-center justify-between text-xs text-left shadow-sm">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-bold text-gray-900">{evt.title}</p>
+                              <span className="bg-red-50 text-red-650 font-bold text-[9px] uppercase px-1.5 py-0.5 rounded border border-red-100">Recusado</span>
+                            </div>
+                            <p className="text-[10px] text-gray-400">Cidade: {evt.city} | Produtor: {evt.organizerName}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                handleApprove(evt.id);
+                              }}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 shadow-sm"
+                            >
+                              <ThumbsUp className="w-3.5 h-3.5" />
+                              <span>Reavaliar & Aprovar</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Deseja excluir permanentemente o evento '${evt.title}'?`)) {
+                                  deleteEvent(evt.id);
+                                }
+                              }}
+                              className="p-1.5 bg-red-50 text-red-650 hover:bg-red-100 border border-red-100 rounded-lg transition-colors flex items-center justify-center"
+                              title="Excluir Evento"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
