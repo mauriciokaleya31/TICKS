@@ -50,6 +50,7 @@ import {
 
 export default function AdminPanel() {
   const { 
+    currentUser,
     users, 
     events, 
     orders, 
@@ -67,7 +68,11 @@ export default function AdminPanel() {
     createFAQ,
     updateFAQ,
     deleteFAQ,
-    updateManualPaymentStatus
+    updateManualPaymentStatus,
+    deleteUser,
+    deleteEvent,
+    deleteOrder,
+    resetSystemToZero
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<string>("approvals");
@@ -231,18 +236,34 @@ export default function AdminPanel() {
             </div>
           </div>
           
-          <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3">
-            <Percent className="w-5 h-5 text-red-400" />
-            <div className="text-left">
-              <span className="text-[10px] text-gray-400 font-bold uppercase block">Comissão Geral SaaS</span>
-              <input 
-                type="number" 
-                value={globalCommissionRate} 
-                onChange={(e) => setGlobalCommissionRate(Number(e.target.value))}
-                className="bg-transparent border-none text-white font-bold text-sm focus:outline-none w-14 font-mono" 
-              />
-              <span className="text-white font-bold text-xs">%</span>
+          <div className="flex items-center gap-3">
+            <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3">
+              <Percent className="w-5 h-5 text-red-400" />
+              <div className="text-left">
+                <span className="text-[10px] text-gray-400 font-bold uppercase block">Comissão Geral SaaS</span>
+                <input 
+                  type="number" 
+                  value={globalCommissionRate} 
+                  onChange={(e) => setGlobalCommissionRate(Number(e.target.value))}
+                  className="bg-transparent border-none text-white font-bold text-sm focus:outline-none w-14 font-mono" 
+                />
+                <span className="text-white font-bold text-xs">%</span>
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm("ATENÇÃO: Tem certeza absoluta que deseja ZERAR O SISTEMA? Isso irá excluir permanentemente todos os eventos, faturas, vendas, e utilizadores do banco de dados para poder começar do absoluto zero.")) {
+                  await resetSystemToZero();
+                  alert("O sistema foi restaurado com sucesso! Tudo foi redefinido para o absoluto zero.");
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-6 rounded-2xl text-xs flex items-center gap-2 shadow-lg shadow-red-600/20 cursor-pointer transition-all border border-red-500/30"
+            >
+              <Trash2 className="w-4 h-4 text-white" />
+              <span>Zerar Sistema para o Início</span>
+            </button>
           </div>
         </div>
       </section>
@@ -275,7 +296,7 @@ export default function AdminPanel() {
         {/* Tab Selection */}
         <div className="flex flex-col lg:flex-row gap-8">
           
-          <aside className="w-full lg:w-64 bg-white rounded-2xl border border-gray-150 p-4 shrink-0 h-fit space-y-1">
+          <aside className="w-full lg:w-64 bg-white rounded-2xl border border-gray-150 p-2 lg:p-4 shrink-0 h-fit flex lg:flex-col overflow-x-auto lg:overflow-visible gap-1 lg:gap-1.5 scrollbar-none snap-x">
             {[
               { id: "approvals", label: `Homologação Eventos (${pendingEventsQueue.length})`, icon: FileCheck },
               { id: "pending_payments", label: `Aprovações Pagamento (${pendingOrders.length})`, icon: CreditCard },
@@ -294,7 +315,7 @@ export default function AdminPanel() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full text-left flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl transition-all ${
+                  className={`snap-start shrink-0 whitespace-nowrap lg:w-full lg:text-left flex items-center justify-center lg:justify-start gap-2.5 lg:gap-3 px-4 py-2.5 lg:py-3 text-xs font-bold rounded-xl transition-all ${
                     activeTab === item.id 
                       ? "bg-red-650 text-white shadow-md shadow-red-650/10" 
                       : "text-gray-650 hover:bg-gray-55 hover:text-gray-900"
@@ -390,20 +411,34 @@ export default function AdminPanel() {
                           <p className="font-bold text-gray-900">{evt.title}</p>
                           <p className="text-[10px] text-gray-400">Cidade: {evt.city} | Produtor: {evt.organizerName}</p>
                         </div>
-                        <button
-                          onClick={() => {
-                            toggleFeatured(evt.id);
-                            alert(`O estado de destaque do evento '${evt.title}' foi atualizado.`);
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-colors flex items-center gap-1 ${
-                            evt.featured 
-                              ? "bg-amber-50 text-amber-600 border-amber-100" 
-                              : "bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200"
-                          }`}
-                        >
-                          <Award className="w-3.5 h-3.5" />
-                          <span>{evt.featured ? "Em Destaque" : "Destacar"}</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              toggleFeatured(evt.id);
+                              alert(`O estado de destaque do evento '${evt.title}' foi atualizado.`);
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-colors flex items-center gap-1 ${
+                              evt.featured 
+                                ? "bg-amber-50 text-amber-600 border-amber-100" 
+                                : "bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200"
+                            }`}
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                            <span>{evt.featured ? "Em Destaque" : "Destacar"}</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Deseja excluir permanentemente o evento '${evt.title}'?`)) {
+                                deleteEvent(evt.id);
+                              }
+                            }}
+                            className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 rounded-lg transition-colors flex items-center justify-center"
+                            title="Excluir Evento"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -589,7 +624,7 @@ export default function AdminPanel() {
                           <th className="px-5 py-4">Email</th>
                           <th className="px-5 py-4">Nível de Função (Role)</th>
                           <th className="px-5 py-4">Estado</th>
-                          <th className="px-5 py-4">Ação</th>
+                          <th className="px-5 py-4 text-right">Ação</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
@@ -610,13 +645,25 @@ export default function AdminPanel() {
                                 {usr.status}
                               </span>
                             </td>
-                            <td className="px-5 py-4">
+                            <td className="px-5 py-4 text-right space-x-2">
                               <button
                                 onClick={() => alert(`Moderação: O estado do utilizador '${usr.name}' foi alterado.`)}
-                                className="text-xs font-bold text-red-600 hover:underline"
+                                className="text-xs font-bold text-gray-600 hover:underline"
                               >
                                 {usr.status === "Ativo" ? "Suspender" : "Ativar"}
                               </button>
+                              {currentUser?.id !== usr.id && (
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm(`Tem a certeza que deseja EXCLUIR permanentemente o utilizador '${usr.name}'?`)) {
+                                      deleteUser(usr.id);
+                                    }
+                                  }}
+                                  className="text-xs font-bold text-red-600 hover:underline"
+                                >
+                                  Excluir
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}

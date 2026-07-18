@@ -135,7 +135,8 @@ Facilitar o encontro entre pessoas e experiências culturais incríveis. Desenvo
       accountNumber: "982736152",
       iban: "AO06.0006.0000.9827.3615.2013.4",
       instructions: "Efetue a transferência bancária no valor exato e anexe o comprovativo correspondente para verificação rápida do administrador.",
-      active: true
+      active: true,
+      icon: "🏦"
     },
     {
       id: "pm-2",
@@ -144,7 +145,21 @@ Facilitar o encontro entre pessoas e experiências culturais incríveis. Desenvo
       accountNumber: "112048591",
       iban: "AO06.0040.0000.1120.4859.1018.9",
       instructions: "Pague no canal BAI Directo ou Multicaixa e faça o upload do comprovativo em formato de imagem JPG/PNG ou documento PDF.",
-      active: true
+      active: true,
+      icon: "💸"
     }
-  ]
+  ],
+  enabledStandardMethods: [
+    "Multicaixa Express",
+    "Referência Multicaixa",
+    "Unitel Money",
+    "Visa / Mastercard"
+  ],
+  enableManualPayments: true,
+  standardMethodIcons: {
+    "Multicaixa Express": "📱",
+    "Referência Multicaixa": "🏦",
+    "Unitel Money": "💸",
+    "Visa / Mastercard": "💳"
+  }
 };

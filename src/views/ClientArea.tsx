@@ -148,7 +148,7 @@ export default function ClientArea({ onNavigate, initialTab = "tickets" }: Clien
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col lg:flex-row gap-8">
         
         {/* Navigation Tab Menu Left sidebar */}
-        <nav className="w-full lg:w-64 bg-white rounded-2xl border border-gray-150 p-4 shrink-0 h-fit space-y-1">
+        <nav className="w-full lg:w-64 bg-white rounded-2xl border border-gray-150 p-2 lg:p-4 shrink-0 h-fit flex lg:flex-col overflow-x-auto lg:overflow-visible gap-1 lg:gap-1.5 scrollbar-none snap-x">
           {[
             { id: "tickets", label: "Bilhetes Ativos", icon: Ticket },
             { id: "history", label: "Histórico de Compras", icon: History },
@@ -161,7 +161,7 @@ export default function ClientArea({ onNavigate, initialTab = "tickets" }: Clien
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full text-left flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl transition-all ${
+                className={`snap-start shrink-0 whitespace-nowrap lg:w-full lg:text-left flex items-center justify-center lg:justify-start gap-2.5 lg:gap-3 px-4 py-2.5 lg:py-3 text-xs font-bold rounded-xl transition-all ${
                   activeTab === item.id 
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10" 
                     : "text-gray-650 hover:bg-gray-50 hover:text-gray-900"

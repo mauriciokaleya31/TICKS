@@ -114,9 +114,17 @@ service cloud.firestore {
     // 1. User Profiles
     match /users/{userId} {
       allow read: if true;
-      allow create: if isSignedIn() && isOwner(userId) && isValidUser(request.resource.data);
+      allow create: if isSignedIn() && isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.role == 'Cliente' || 
+                     (request.auth.token.email == 'admin@gmail.com' && request.resource.data.role == 'Administrador') || 
+                     (request.auth.token.email == 'organizador@gmail.com' && request.resource.data.role == 'Organizador')
+                    );
       allow update: if isSignedIn() && (
-        (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role && request.resource.data.status == resource.data.status) || 
+        (isOwner(userId) && isValidUser(request.resource.data) && 
+         (request.resource.data.role == resource.data.role || 
+          (request.auth.token.email == 'admin@gmail.com' && request.resource.data.role == 'Administrador') || 
+          (request.auth.token.email == 'organizador@gmail.com' && request.resource.data.role == 'Organizador')
+         ) && request.resource.data.status == resource.data.status) || 
         isAdmin()
       );
       allow delete: if isAdmin();

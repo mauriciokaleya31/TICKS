@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { UserRole } from "../types";
+import { playSound } from "../lib/audio";
 import { 
   Mail, 
   Lock, 
@@ -33,7 +34,8 @@ export default function AuthArea({ onSuccess, onNavigateBack, initialMode = "log
     verifyEmailWithFirebase,
     currentUser, 
     logoutWithFirebase,
-    firebaseAuthLoading 
+    firebaseAuthLoading,
+    switchUserRole
   } = useApp();
 
   const [mode, setMode] = useState<"login" | "register" | "recover" | "verify" | "change-password">(
@@ -70,6 +72,7 @@ export default function AuthArea({ onSuccess, onNavigateBack, initialMode = "log
     setErrorMsg(null);
     try {
       await loginWithFirebase(email, password);
+      try { playSound.login(); } catch (e) {}
       setSuccessMsg("Sessão iniciada com sucesso!");
       if (onSuccess) {
         setTimeout(onSuccess, 1000);
@@ -335,6 +338,7 @@ export default function AuthArea({ onSuccess, onNavigateBack, initialMode = "log
                 </button>
               </p>
             </div>
+
           </form>
         )}
 
@@ -502,9 +506,6 @@ export default function AuthArea({ onSuccess, onNavigateBack, initialMode = "log
               </div>
               <p className="text-xs text-gray-300">
                 Sessão ativa como: <span className="font-bold text-white">{currentUser?.name}</span> ({currentUser?.email})
-              </p>
-              <p className="text-xs text-gray-300">
-                Perfil Oficial do Firebase: <span className="font-mono text-[10px] bg-[#2B7A5D]/20 text-[#DCE82D] px-2 py-0.5 rounded-full font-bold">{currentUser?.role}</span>
               </p>
             </div>
 

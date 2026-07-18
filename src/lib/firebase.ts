@@ -68,8 +68,11 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errMsg = error instanceof Error ? error.message : String(error);
+  const errCode = (error as any)?.code || "";
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMsg,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -84,8 +87,52 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+
+  const isTransient = 
+    errCode === "unavailable" || 
+    errCode === "cancelled" || 
+    errCode === "aborted" ||
+    errCode === "deadline-exceeded" ||
+    errMsg.toLowerCase().includes("aborted") ||
+    errMsg.toLowerCase().includes("abort") ||
+    errMsg.toLowerCase().includes("unavailable") ||
+    errMsg.toLowerCase().includes("could not reach") ||
+    errMsg.toLowerCase().includes("connection failed") ||
+    errMsg.toLowerCase().includes("signal is aborted") ||
+    errMsg.toLowerCase().includes("offline");
+
+  if (isTransient) {
+    console.warn("Firestore Transient/Offline Warning (handled gracefully):", JSON.stringify(errInfo));
+    return; // Do not crash the application or throw unhandled exceptions for transient offline or abort events
+  }
+
+  console.error("Firestore Error: ", JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
+}
+
+export function safeErrorLog(error: any, context?: string) {
+  const errMsg = error instanceof Error ? error.message : String(error);
+  const errCode = error?.code || "";
+  
+  const isTransient = 
+    errCode === "unavailable" || 
+    errCode === "cancelled" || 
+    errCode === "aborted" ||
+    errCode === "deadline-exceeded" ||
+    errMsg.toLowerCase().includes("aborted") ||
+    errMsg.toLowerCase().includes("abort") ||
+    errMsg.toLowerCase().includes("unavailable") ||
+    errMsg.toLowerCase().includes("could not reach") ||
+    errMsg.toLowerCase().includes("connection failed") ||
+    errMsg.toLowerCase().includes("signal is aborted") ||
+    errMsg.toLowerCase().includes("offline");
+
+  if (isTransient) {
+    console.warn(`[Transient Warning] ${context || "Operation"} handled gracefully (aborted/transient):`, errMsg);
+    return;
+  }
+  
+  console.error(`[Error] ${context || "Operation"} failed:`, error);
 }
 
 export {

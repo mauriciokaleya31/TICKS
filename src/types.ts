@@ -213,6 +213,7 @@ export interface ManualPaymentMethod {
   bankLogoUrl?: string;
   instructions: string;
   active: boolean;
+  icon?: string;
 }
 
 export interface CMSConfig {
@@ -222,6 +223,9 @@ export interface CMSConfig {
   footer: FooterConfig;
   pages: PageContent[];
   paymentMethods: ManualPaymentMethod[];
+  enabledStandardMethods?: string[];
+  enableManualPayments?: boolean;
+  standardMethodIcons?: { [key: string]: string };
 }
 
 export interface Coupon {

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { Event, EventCategory, EventType, TicketType, TicketTypeClass, Coupon, Order, OrderStatus } from "../types";
+import { playSound } from "../lib/audio";
 import { 
   AreaChart, 
   Area, 
@@ -34,7 +35,8 @@ import {
   Search,
   ScanLine,
   RefreshCw,
-  Clock
+  Clock,
+  Upload
 } from "lucide-react";
 import QRCodeGenerator from "../components/QRCodeGenerator";
 
@@ -176,7 +178,8 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
       ticketTypes: evtTicketTypes as TicketType[]
     });
 
-    setEvtSuccessMsg("Evento criado com sucesso e enviado para aprovação da administração!");
+    try { playSound.success(); } catch (e) {}
+    setEvtSuccessMsg("Evento criado com sucesso e já está ativo no Website Público!");
     
     // Reset fields
     setEvtTitle("");
@@ -206,6 +209,7 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
       active: true
     });
 
+    try { playSound.success(); } catch (e) {}
     setCoupCode("");
     alert("Cupão de desconto promocional adicionado com sucesso!");
   };
@@ -262,10 +266,11 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
       ...evt,
       id: `event-${Date.now()}`,
       title: `${evt.title} (Cópia)`,
-      approved: false // Re-approval needed
+      approved: true
     };
     createEvent(duplicated);
-    alert(`Evento '${evt.title}' duplicado com sucesso!`);
+    try { playSound.success(); } catch (e) {}
+    alert(`Evento '${evt.title}' duplicado e ativado com sucesso!`);
   };
 
   // Filter coupons associated with events or platform
@@ -329,7 +334,7 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col lg:flex-row gap-8">
         
         {/* Navigation Sidebar */}
-        <aside className="w-full lg:w-64 bg-white rounded-2xl border border-gray-150 p-4 shrink-0 h-fit space-y-1">
+        <aside className="w-full lg:w-64 bg-white rounded-2xl border border-gray-150 p-2 lg:p-4 shrink-0 h-fit flex lg:flex-col overflow-x-auto lg:overflow-visible gap-1 lg:gap-1.5 scrollbar-none snap-x">
           {[
             { id: "dashboard", label: "Visão Geral & Gráficos", icon: BarChart3 },
             { id: "my-events", label: "Gestão de Eventos", icon: Calendar },
@@ -343,7 +348,7 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full text-left flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl transition-all ${
+                className={`snap-start shrink-0 whitespace-nowrap lg:w-full lg:text-left flex items-center justify-center lg:justify-start gap-2.5 lg:gap-3 px-4 py-2.5 lg:py-3 text-xs font-bold rounded-xl transition-all ${
                   activeTab === item.id 
                     ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/10" 
                     : "text-gray-650 hover:bg-gray-55 hover:text-gray-900"
@@ -632,15 +637,53 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
                     />
                   </div>
 
-                  <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Capa Imagem URL</label>
-                    <input
-                      type="url"
-                      value={evtImage}
-                      onChange={(e) => setEvtImage(e.target.value)}
-                      placeholder="https://images.unsplash.com/... (Deixe em branco para usar uma capa padrão)"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none"
-                    />
+                  <div className="space-y-1.5 md:col-span-2 text-left">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block text-left">Capa do Evento</label>
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                      <div className="space-y-1 text-left">
+                        <span className="text-[10px] font-semibold text-gray-400 block">Subir Imagem Local</span>
+                        <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-2 px-3 hover:bg-gray-50 cursor-pointer transition-colors">
+                          <Upload className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs text-gray-650 font-bold">Carregar Arquivo</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  if (typeof reader.result === "string") {
+                                    setEvtImage(reader.result);
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                      <div className="space-y-1 text-left">
+                        <span className="text-[10px] font-semibold text-gray-400 block">Ou colar URL/Link Direto</span>
+                        <input
+                          type="url"
+                          placeholder="https://images.unsplash.com/..."
+                          value={evtImage}
+                          onChange={(e) => setEvtImage(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-mono"
+                        />
+                      </div>
+                      {evtImage && (
+                        <div className="sm:col-span-2 flex items-center gap-3 bg-gray-50 p-2 rounded-lg border">
+                          <img src={evtImage} alt="Preview Capa Evento" className="w-20 h-12 object-cover rounded border" />
+                          <div className="text-[10px] text-gray-500 text-left truncate flex-1">
+                            {evtImage.startsWith("data:") ? "Imagem carregada localmente (Armazenada no Firestore)" : evtImage}
+                          </div>
+                          <button type="button" onClick={() => setEvtImage("")} className="text-red-500 font-bold text-xs">Remover</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

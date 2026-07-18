@@ -21,6 +21,11 @@ interface AdminCMSProps {
   subTab: string;
 }
 
+const isImage = (val?: string) => {
+  if (!val) return false;
+  return val.startsWith("http://") || val.startsWith("https://") || val.startsWith("data:image/");
+};
+
 export default function AdminCMS({ subTab }: AdminCMSProps) {
   const { 
     cmsConfig, 
@@ -46,6 +51,27 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
   const [paymentInstructions, setPaymentInstructions] = useState("");
   const [paymentOrder, setPaymentOrder] = useState(0);
   const [paymentActive, setPaymentActive] = useState(true);
+  const [paymentIcon, setPaymentIcon] = useState("");
+
+  const toggleStandardMethod = async (methodName: string) => {
+    const currentEnabled = cmsConfig.enabledStandardMethods || [
+      "Multicaixa Express",
+      "Referência Multicaixa",
+      "Unitel Money",
+      "Visa / Mastercard"
+    ];
+    
+    let updatedList: string[];
+    if (currentEnabled.includes(methodName)) {
+      updatedList = currentEnabled.filter(m => m !== methodName);
+    } else {
+      updatedList = [...currentEnabled, methodName];
+    }
+    
+    const updated = { ...cmsConfig, enabledStandardMethods: updatedList };
+    updateCMSConfig(updated);
+    await saveCMSConfig(updated);
+  };
 
   // LOCAL STATES FOR SLIDES EDITING
   const [editingSlideId, setEditingSlideId] = useState<string | null>(null);
@@ -278,9 +304,53 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
                     <label className="font-semibold text-gray-650">Descrição do Slide</label>
                     <input type="text" value={slideDesc} onChange={e => setSlideDesc(e.target.value)} className="w-full bg-white border rounded-xl px-3 py-2" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="font-semibold text-gray-650">URL da Imagem</label>
-                    <input type="text" value={slideImage} onChange={e => setSlideImage(e.target.value)} className="w-full bg-white border rounded-xl px-3 py-2 font-mono" />
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="font-semibold text-gray-650 block text-left">Imagem do Banner</label>
+                    <div className="bg-white p-3 rounded-xl border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                      <div className="space-y-1 text-left">
+                        <span className="text-[10px] font-semibold text-gray-400 block">Subir Imagem Local</span>
+                        <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-2 px-3 hover:bg-gray-50 cursor-pointer transition-colors">
+                          <Upload className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs text-gray-650 font-bold">Escolher Imagem</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  if (typeof reader.result === "string") {
+                                    setSlideImage(reader.result);
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                      <div className="space-y-1 text-left">
+                        <span className="text-[10px] font-semibold text-gray-400 block">Ou colar URL/Link Direto</span>
+                        <input
+                          type="text"
+                          placeholder="https://images.unsplash.com/..."
+                          value={slideImage}
+                          onChange={e => setSlideImage(e.target.value)}
+                          className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-mono"
+                        />
+                      </div>
+                      {slideImage && (
+                        <div className="sm:col-span-2 flex items-center gap-3 bg-gray-50 p-2 rounded-lg border">
+                          <img src={slideImage} alt="Preview Banner" className="w-16 h-10 object-cover rounded border" />
+                          <div className="text-[10px] text-gray-500 text-left truncate flex-1">
+                            {slideImage.startsWith("data:") ? "Imagem carregada localmente (Salva no Firestore)" : slideImage}
+                          </div>
+                          <button type="button" onClick={() => setSlideImage("")} className="text-red-500 font-bold text-xs">Remover</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <input type="text" placeholder="Texto Botão" value={slideBtnText} onChange={e => setSlideBtnText(e.target.value)} className="bg-white border rounded-xl px-3 py-2" />
@@ -379,7 +449,56 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <input type="text" placeholder="Nome" value={categoryName} onChange={e => setCategoryName(e.target.value)} className="bg-white border rounded-xl px-3 py-2" />
                   <input type="text" placeholder="Ícone Lucide (ex: Music, Trophy)" value={categoryIcon} onChange={e => setCategoryIcon(e.target.value)} className="bg-white border rounded-xl px-3 py-2 font-mono" />
-                  <input type="text" placeholder="URL da Imagem" value={categoryImage} onChange={e => setCategoryImage(e.target.value)} className="bg-white border rounded-xl px-3 py-2 font-mono sm:col-span-2" />
+                  
+                  <div className="space-y-1 sm:col-span-2 text-left">
+                    <label className="font-semibold text-gray-650 block text-left">Imagem da Categoria</label>
+                    <div className="bg-white p-3 rounded-xl border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                      <div className="space-y-1 text-left">
+                        <span className="text-[10px] font-semibold text-gray-400 block">Subir Imagem Local</span>
+                        <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-2 px-3 hover:bg-gray-50 cursor-pointer transition-colors">
+                          <Upload className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs text-gray-650 font-bold">Escolher Imagem</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  if (typeof reader.result === "string") {
+                                    setCategoryImage(reader.result);
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                      <div className="space-y-1 text-left">
+                        <span className="text-[10px] font-semibold text-gray-400 block">Ou colar URL/Link Direto</span>
+                        <input
+                          type="text"
+                          placeholder="https://images.unsplash.com/..."
+                          value={categoryImage}
+                          onChange={e => setCategoryImage(e.target.value)}
+                          className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-mono"
+                        />
+                      </div>
+                      {categoryImage && (
+                        <div className="sm:col-span-2 flex items-center gap-3 bg-gray-50 p-2 rounded-lg border">
+                          <img src={categoryImage} alt="Preview Categoria" className="w-16 h-10 object-cover rounded border" />
+                          <div className="text-[10px] text-gray-500 text-left truncate flex-1">
+                            {categoryImage.startsWith("data:") ? "Imagem carregada localmente (Salva no Firestore)" : categoryImage}
+                          </div>
+                          <button type="button" onClick={() => setCategoryImage("")} className="text-red-500 font-bold text-xs">Remover</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <input type="text" placeholder="Descrição" value={categoryDesc} onChange={e => setCategoryDesc(e.target.value)} className="bg-white border rounded-xl px-3 py-2 sm:col-span-2" />
                 </div>
                 <div className="flex gap-2 justify-end">
@@ -557,10 +676,60 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
             </div>
 
             {editingBlogId && (
-              <div className="p-4 bg-gray-55 border rounded-xl space-y-4 text-xs">
-                <input type="text" placeholder="Título" value={blogTitle} onChange={e => setBlogTitle(e.target.value)} className="bg-white border rounded-xl px-3 py-2 w-full font-bold" />
-                <input type="text" placeholder="Resumo curto" value={blogExcerpt} onChange={e => setBlogExcerpt(e.target.value)} className="bg-white border rounded-xl px-3 py-2 w-full" />
-                <textarea placeholder="Conteúdo do artigo" value={blogContent} onChange={e => setBlogContent(e.target.value)} className="bg-white border rounded-xl p-3 w-full" rows={6} />
+              <div className="p-4 bg-gray-55 border rounded-xl space-y-4 text-xs text-left">
+                <input type="text" placeholder="Título" value={blogTitle} onChange={e => setBlogTitle(e.target.value)} className="bg-white border rounded-xl px-3 py-2 w-full font-bold text-gray-900" />
+                <input type="text" placeholder="Resumo curto" value={blogExcerpt} onChange={e => setBlogExcerpt(e.target.value)} className="bg-white border rounded-xl px-3 py-2 w-full text-gray-800" />
+                
+                <div className="space-y-1 text-left">
+                  <label className="font-semibold text-gray-650 block text-left">Imagem de Capa do Artigo</label>
+                  <div className="bg-white p-3 rounded-xl border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                    <div className="space-y-1 text-left">
+                      <span className="text-[10px] font-semibold text-gray-400 block">Subir Imagem Local</span>
+                      <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-2 px-3 hover:bg-gray-50 cursor-pointer transition-colors">
+                        <Upload className="w-4 h-4 text-gray-400" />
+                        <span className="text-xs text-gray-650 font-bold">Escolher Imagem</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                if (typeof reader.result === "string") {
+                                  setBlogCover(reader.result);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    <div className="space-y-1 text-left">
+                      <span className="text-[10px] font-semibold text-gray-400 block">Ou colar URL/Link Direto</span>
+                      <input
+                        type="text"
+                        placeholder="https://images.unsplash.com/..."
+                        value={blogCover}
+                        onChange={e => setBlogCover(e.target.value)}
+                        className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-mono"
+                      />
+                    </div>
+                    {blogCover && (
+                      <div className="sm:col-span-2 flex items-center gap-3 bg-gray-50 p-2 rounded-lg border">
+                        <img src={blogCover} alt="Preview Capa Blog" className="w-16 h-10 object-cover rounded border" />
+                        <div className="text-[10px] text-gray-500 text-left truncate flex-1">
+                          {blogCover.startsWith("data:") ? "Imagem carregada localmente (Salva no Firestore)" : blogCover}
+                        </div>
+                        <button type="button" onClick={() => setBlogCover("")} className="text-red-500 font-bold text-xs">Remover</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <textarea placeholder="Conteúdo do artigo" value={blogContent} onChange={e => setBlogContent(e.target.value)} className="bg-white border rounded-xl p-3 w-full text-gray-800" rows={6} />
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => setEditingBlogId(null)} className="px-3 py-1 bg-gray-200 rounded text-[11px]">Cancelar</button>
                   <button 
@@ -611,32 +780,214 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
         <div className="space-y-6">
           <div>
             <h3 className="font-sans font-extrabold text-lg text-gray-950">CMS: Configurações de Pagamento</h3>
-            <p className="text-gray-500 text-xs">Configure as contas bancárias (IBAN) ativas para transferências manuais.</p>
+            <p className="text-gray-500 text-xs">Configure os métodos de pagamento ativos da plataforma e contas bancárias para transferências.</p>
           </div>
 
+          {/* Métodos de Pagamento Integrados */}
+          <div className="bg-white p-6 rounded-2xl border border-gray-150 shadow-sm space-y-4">
+            <div>
+              <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-widest">Métodos de Pagamento Padrão</h4>
+              <p className="text-gray-400 text-[11px] mt-0.5">Ative ou desative os métodos de pagamento automáticos e integrados que aparecem no checkout dos clientes.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { id: "Multicaixa Express", label: "Multicaixa Express", desc: "Pagamento instantâneo via telemóvel associado à rede Multicaixa.", icon: "📱" },
+                { id: "Referência Multicaixa", label: "Referência Multicaixa", desc: "Pagamento por entidade e referência gerada na hora para ATM/Homebanking.", icon: "🏦" },
+                { id: "Unitel Money", label: "Unitel Money / Afrimoney", desc: "Pagamentos móveis integrados com as principais operadoras em Angola.", icon: "💸" },
+                { id: "Visa / Mastercard", label: "Cartão de Crédito (Visa / Mastercard)", desc: "Pagamentos internacionais integrados via Gateway Stripe.", icon: "💳" }
+              ].map((item) => {
+                const isEnabled = (cmsConfig.enabledStandardMethods || [
+                  "Multicaixa Express",
+                  "Referência Multicaixa",
+                  "Unitel Money",
+                  "Visa / Mastercard"
+                ]).includes(item.id);
+                
+                const customIcon = cmsConfig.standardMethodIcons?.[item.id] || item.icon;
+                
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`p-4 rounded-xl border transition-all flex flex-col gap-3 ${
+                      isEnabled ? "bg-indigo-50/30 border-indigo-200" : "bg-gray-55 border-gray-150"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex gap-3 items-start">
+                        {isImage(customIcon) ? (
+                          <img src={customIcon} alt="" className="w-8 h-8 object-contain shrink-0 rounded border bg-white" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className="text-xl shrink-0 mt-0.5">{customIcon}</span>
+                        )}
+                        <div className="text-left">
+                          <p className="font-bold text-xs text-gray-900">{item.label}</p>
+                          <p className="text-[10px] text-gray-500 leading-normal">{item.desc}</p>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => toggleStandardMethod(item.id)}
+                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          isEnabled ? "bg-indigo-600" : "bg-gray-200"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                            isEnabled ? "translate-x-4" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="pt-3 border-t border-gray-150 space-y-2 text-left">
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="text-gray-400 font-bold uppercase block text-left">Ícone / Imagem Personalizada</span>
+                        <span className="text-gray-400 font-medium text-[9px] block text-right">Tamanho recomendado: 48x48 px (quadrado)</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+                        {/* Option A: Upload local image */}
+                        <div className="flex flex-col gap-1 text-left">
+                          <span className="text-gray-400 font-semibold block text-left">Subir Imagem Local:</span>
+                          <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-250 rounded-lg py-1.5 px-2.5 hover:bg-gray-50 cursor-pointer transition-colors bg-white">
+                            <Upload className="w-3 h-3 text-gray-400" />
+                            <span className="font-bold text-gray-600 text-[10px]">Escolher Ficheiro</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    if (typeof reader.result === "string") {
+                                      const currentIcons = cmsConfig.standardMethodIcons || {};
+                                      const updatedIcons = { ...currentIcons, [item.id]: reader.result };
+                                      const updated = { ...cmsConfig, standardMethodIcons: updatedIcons };
+                                      updateCMSConfig(updated);
+                                      saveCMSConfig(updated);
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+
+                        {/* Option B: Direct URL / Link */}
+                        <div className="flex flex-col gap-1 text-left">
+                          <span className="text-gray-400 font-semibold block text-left">Ou colar URL/Link:</span>
+                          <input
+                            type="text"
+                            placeholder="https://link-da-imagem.png"
+                            value={(cmsConfig.standardMethodIcons?.[item.id] || "").startsWith("data:") ? "" : (cmsConfig.standardMethodIcons?.[item.id] || "")}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const currentIcons = cmsConfig.standardMethodIcons || {};
+                              const updatedIcons = { ...currentIcons, [item.id]: val };
+                              const updated = { ...cmsConfig, standardMethodIcons: updatedIcons };
+                              updateCMSConfig(updated);
+                              saveCMSConfig(updated);
+                            }}
+                            className="bg-white border rounded-lg px-2 py-1.5 font-mono text-[9px] focus:outline-none focus:border-indigo-500 w-full"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Option C: Quick Emojis selection */}
+                      <div className="flex flex-wrap items-center gap-1 pt-1">
+                        <span className="text-[9px] text-gray-400 font-semibold mr-1">Rápido (Emoji):</span>
+                        {["📱", "🏦", "💸", "💳", "🏛️", "💵", "🪙", "🔥"].map(emoji => (
+                          <button
+                            key={emoji}
+                            onClick={() => {
+                              const currentIcons = cmsConfig.standardMethodIcons || {};
+                              const updatedIcons = { ...currentIcons, [item.id]: emoji };
+                              const updated = { ...cmsConfig, standardMethodIcons: updatedIcons };
+                              updateCMSConfig(updated);
+                              saveCMSConfig(updated);
+                            }}
+                            className={`w-5 h-5 rounded flex items-center justify-center hover:bg-gray-200 transition-colors ${
+                              customIcon === emoji ? "bg-indigo-100 border border-indigo-400 scale-110" : ""
+                            }`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                        {customIcon && (customIcon.startsWith("http") || customIcon.startsWith("data:")) && (
+                          <button
+                            onClick={() => {
+                              const currentIcons = cmsConfig.standardMethodIcons || {};
+                              const { [item.id]: _, ...rest } = currentIcons;
+                              const updated = { ...cmsConfig, standardMethodIcons: rest };
+                              updateCMSConfig(updated);
+                              saveCMSConfig(updated);
+                            }}
+                            className="px-1.5 py-0.5 ml-auto text-[9px] text-red-500 font-bold bg-red-50 hover:bg-red-100 rounded transition-colors"
+                          >
+                            Repor Padrão
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Método de Pagamento Manual e Contas Bancárias */}
           <div className="bg-white p-6 rounded-2xl border border-gray-150 shadow-sm space-y-6">
-            <div className="flex justify-between items-center pb-1 border-b">
-              <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-widest">Contas Bancárias Ativas</h4>
-              <button 
-                onClick={() => {
-                  setEditingPaymentId("new");
-                  setPaymentName("Depósito / Transferência Bancária");
-                  setPaymentBankName("BFA");
-                  setPaymentAccountHolder("TKTS ANGOLA LIMITADA");
-                  setPaymentAccountNumber("100293029.10.001");
-                  setPaymentIban("AO06.0044.0000.1002.9302.9100.1");
-                  setPaymentInstructions("Transfira o valor exato da compra e anexe o comprovativo correspondente.");
-                  setPaymentOrder(cmsConfig.paymentMethods.length);
-                  setPaymentActive(true);
-                }}
-                className="px-2.5 py-1 bg-indigo-600 text-white font-bold text-[10px] rounded-lg"
-              >
-                Cadastrar Banco
-              </button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b gap-3">
+              <div>
+                <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-widest">Método de Pagamento Manual</h4>
+                <p className="text-gray-400 text-[11px] mt-0.5">Permita pagamentos por depósito/transferência bancária com envio de comprovativo.</p>
+              </div>
+              <div className="flex items-center gap-4 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-gray-700">Activar Pagamentos Manuais:</span>
+                  <button
+                    onClick={() => {
+                      const updated = { ...cmsConfig, enableManualPayments: cmsConfig.enableManualPayments !== false ? false : true };
+                      updateCMSConfig(updated);
+                      saveCMSConfig(updated);
+                    }}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      cmsConfig.enableManualPayments !== false ? "bg-emerald-600" : "bg-gray-250"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        cmsConfig.enableManualPayments !== false ? "translate-x-4" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+                <button 
+                  onClick={() => {
+                    setEditingPaymentId("new");
+                    setPaymentName("Depósito / Transferência Bancária");
+                    setPaymentBankName("BFA");
+                    setPaymentAccountHolder("TKTS ANGOLA LIMITADA");
+                    setPaymentAccountNumber("100293029.10.001");
+                    setPaymentIban("AO06.0044.0000.1002.9302.9100.1");
+                    setPaymentInstructions("Transfira o valor exato da compra e anexe o comprovativo correspondente.");
+                    setPaymentOrder(cmsConfig.paymentMethods.length);
+                    setPaymentActive(true);
+                    setPaymentIcon("");
+                  }}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition-colors"
+                >
+                  Cadastrar Banco
+                </button>
+              </div>
             </div>
 
             {editingPaymentId && (
-              <div className="p-4 bg-gray-55 border rounded-xl space-y-4 text-xs">
+              <div className="p-4 bg-gray-55 border border-gray-200 rounded-xl space-y-4 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <input type="text" placeholder="Nome Exibição (ex: Transferência BFA)" value={paymentName} onChange={e => setPaymentName(e.target.value)} className="bg-white border rounded-xl px-3 py-2 w-full font-bold" />
                   <input type="text" placeholder="Nome Banco (ex: BFA, BAI)" value={paymentBankName} onChange={e => setPaymentBankName(e.target.value)} className="bg-white border rounded-xl px-3 py-2" />
@@ -644,23 +995,107 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
                   <input type="text" placeholder="IBAN" value={paymentIban} onChange={e => setPaymentIban(e.target.value)} className="bg-white border rounded-xl px-3 py-2 font-mono" />
                   <input type="text" placeholder="Número de Conta" value={paymentAccountNumber} onChange={e => setPaymentAccountNumber(e.target.value)} className="bg-white border rounded-xl px-3 py-2 font-mono sm:col-span-2" />
                   <textarea placeholder="Instruções Adicionais" value={paymentInstructions} onChange={e => setPaymentInstructions(e.target.value)} className="bg-white border rounded-xl p-3 sm:col-span-2" rows={2} />
+                  
+                  {/* Custom Bank Logo Uploader - No suggestions, completely administered by admin */}
+                  <div className="sm:col-span-2 space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Logotipo / Ícone do Banco (Gerido pelo Administrador)</label>
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
+                      {paymentIcon ? (
+                        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-150">
+                          {isImage(paymentIcon) ? (
+                            <img src={paymentIcon} alt="Logo do Banco" className="w-12 h-12 object-contain rounded-lg bg-white border p-1" />
+                          ) : (
+                            <span className="text-2xl bg-white border rounded-lg p-2.5 shadow-sm">{paymentIcon}</span>
+                          )}
+                          <div className="flex-1 text-left">
+                            <p className="text-xs font-bold text-gray-700">Ícone definido</p>
+                            <p className="text-[10px] text-gray-400">Este ícone será exibido aos clientes no checkout.</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPaymentIcon("")}
+                            className="text-xs text-red-500 hover:text-red-700 font-bold"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-left text-[11px] text-gray-400 py-1">
+                          Nenhum logotipo adicionado. Faça o upload de um arquivo ou digite um link direto.
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        {/* File Upload Option */}
+                        <div className="space-y-1 text-left">
+                          <span className="text-[10px] font-semibold text-gray-500 block">Carregar arquivo de imagem</span>
+                          <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-2 px-3 hover:bg-gray-50 cursor-pointer transition-colors">
+                            <Upload className="w-4 h-4 text-gray-400" />
+                            <span className="text-xs text-gray-650 font-bold">Subir Logotipo / Ícone</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    if (typeof reader.result === "string") {
+                                      setPaymentIcon(reader.result);
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+
+                        {/* Direct URL / Emoji Input Option */}
+                        <div className="space-y-1 text-left">
+                          <span className="text-[10px] font-semibold text-gray-500 block">Ou insira URL / Texto alternativo</span>
+                          <input
+                            type="text"
+                            placeholder="Ex: https://link-da-imagem.png ou 🏦"
+                            value={paymentIcon}
+                            onChange={(e) => setPaymentIcon(e.target.value)}
+                            className="w-full bg-white border rounded-xl px-3 py-2 text-xs text-gray-800"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
                 <div className="flex gap-2 justify-end pt-2">
-                  <button onClick={() => setEditingPaymentId(null)} className="px-3 py-1 bg-gray-200 rounded text-[11px]">Cancelar</button>
+                  <button onClick={() => setEditingPaymentId(null)} className="px-3 py-1 bg-gray-250 hover:bg-gray-200 transition-colors rounded text-[11px] font-bold">Cancelar</button>
                   <button 
                     onClick={() => {
                       if (!paymentName.trim() || !paymentBankName.trim()) return;
                       const list = [...cmsConfig.paymentMethods];
-                      const newPM = { id: editingPaymentId === "new" ? `pm-${Date.now()}` : editingPaymentId, name: paymentName, type: "manual" as const, bankName: paymentBankName, accountHolder: paymentAccountHolder, accountNumber: paymentAccountNumber, iban: paymentIban, instructions: paymentInstructions, order: paymentOrder, active: paymentActive };
-                      if (editingPaymentId === "new") list.push(newPM); else {
+                      
+                      const finalPM: any = {
+                        id: editingPaymentId === "new" ? `pm-${Date.now()}` : editingPaymentId,
+                        bankName: paymentBankName,
+                        accountHolder: paymentAccountHolder,
+                        accountNumber: paymentAccountNumber,
+                        iban: paymentIban,
+                        instructions: paymentInstructions,
+                        active: paymentActive,
+                        icon: paymentIcon || "",
+                        name: paymentName
+                      };
+
+                      if (editingPaymentId === "new") list.push(finalPM); else {
                         const idx = list.findIndex(p => p.id === editingPaymentId);
-                        if (idx !== -1) list[idx] = newPM;
+                        if (idx !== -1) list[idx] = finalPM;
                       }
                       const updated = { ...cmsConfig, paymentMethods: list };
                       updateCMSConfig(updated);
                       saveCMSConfig(updated).then(() => { setEditingPaymentId(null); alert("Banco salvo com sucesso!"); });
                     }}
-                    className="px-3 py-1 bg-indigo-600 text-white rounded text-[11px]"
+                    className="px-4 py-1 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors rounded text-[11px] font-bold shadow-sm"
                   >
                     Salvar Banco
                   </button>
@@ -670,24 +1105,32 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               {cmsConfig.paymentMethods.map(pm => (
-                <div key={pm.id} className="border rounded-xl p-4 bg-white space-y-2 text-left shadow-sm">
-                  <div className="flex justify-between pb-1.5 border-b font-extrabold text-indigo-950">
-                    <span>{pm.name}</span>
-                    <span className="text-[10px] text-emerald-600 font-bold">{pm.bankName}</span>
+                <div key={pm.id} className="border border-gray-150 rounded-xl p-4 bg-white space-y-2 text-left shadow-sm">
+                  <div className="flex justify-between pb-1.5 border-b font-extrabold text-indigo-950 items-center">
+                    <span className="flex items-center gap-1.5">
+                      {isImage(pm.icon) ? (
+                        <img src={pm.icon} alt="" className="w-6 h-6 object-contain rounded-md border" />
+                      ) : (
+                        <span className="text-base">{pm.icon || "🏦"}</span>
+                      )}
+                      <span>{(pm as any).name || pm.bankName}</span>
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">{pm.bankName}</span>
                   </div>
                   <p className="text-[11px] text-gray-500"><strong>Titular:</strong> {pm.accountHolder}</p>
                   <p className="font-mono text-[10px] text-gray-500"><strong>IBAN:</strong> {pm.iban}</p>
                   <div className="flex justify-end gap-2 pt-2 border-t">
                     <button onClick={() => {
                       setEditingPaymentId(pm.id);
-                      setPaymentName(pm.name);
+                      setPaymentName((pm as any).name || pm.bankName);
                       setPaymentBankName(pm.bankName);
                       setPaymentAccountHolder(pm.accountHolder);
                       setPaymentAccountNumber(pm.accountNumber || "");
                       setPaymentIban(pm.iban || "");
                       setPaymentInstructions(pm.instructions || "");
-                      setPaymentOrder(pm.order);
+                      setPaymentOrder((pm as any).order || 0);
                       setPaymentActive(pm.active);
+                      setPaymentIcon(pm.icon || "");
                     }} className="text-indigo-600 hover:underline">Editar</button>
                     <button onClick={() => {
                       const updated = { ...cmsConfig, paymentMethods: cmsConfig.paymentMethods.filter(p => p.id !== pm.id) };

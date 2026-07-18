@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from "react";
 import { useApp } from "../context/AppContext";
 import { Event, EventCategory, EventType, TicketType, PaymentMethod, Order, BlogPost, OrderStatus, UserRole } from "../types";
+import { playSound } from "../lib/audio";
 import { 
   Search, 
   MapPin, 
@@ -78,6 +79,7 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
   const [selectedType, setSelectedType] = useState<string>("Todos");
   const [selectedPriceType, setSelectedPriceType] = useState<string>("Todos"); // Todos, Gratuito, Pago
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>("Qualquer"); // Qualquer, Hoje, Amanhã, Esta Semana, Este Mês
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Homepage dynamic banner slide index state
   const [activeSlideIdx, setActiveSlideIdx] = useState(0);
@@ -306,6 +308,7 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
     );
 
     if (result.success && result.order) {
+      try { playSound.cashRegister(); } catch (e) {}
       setCompletedOrder(result.order);
       setCheckoutStep(4);
     } else {
@@ -478,7 +481,7 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
 
           {/* Quick Categories Bar (Dynamic CMS Driven) */}
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
-            <div className="bg-[#0c0d0e] rounded-2xl shadow-xl border border-white/10 p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="bg-[#0c0d0e] rounded-2xl shadow-xl border border-white/10 p-4 flex lg:grid lg:grid-cols-6 overflow-x-auto lg:overflow-visible gap-3 scrollbar-none snap-x">
               {(cmsConfig?.categories || [])
                 .filter(c => c.active)
                 .sort((a, b) => a.order - b.order)
@@ -501,7 +504,7 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
                         setSelectedCategory(cat.name);
                         onNavigate("events", { category: cat.name });
                       }}
-                      className="flex items-center gap-2.5 p-3 rounded-xl hover:bg-amber-500/5 border border-transparent hover:border-amber-500/20 transition-all text-left group cursor-pointer"
+                      className="snap-start shrink-0 min-w-[140px] lg:min-w-0 flex items-center gap-2.5 p-3 rounded-xl hover:bg-amber-500/5 border border-transparent hover:border-amber-500/20 transition-all text-left group cursor-pointer"
                     >
                       <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 group-hover:scale-110 group-hover:bg-amber-500/20 transition-all flex items-center justify-center">
                         {getIcon()}
@@ -968,9 +971,21 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
             <span className="text-gray-900 font-semibold">Procurar Eventos</span>
           </div>
 
+          {/* Mobile Filter Toggle Button */}
+          <div className="lg:hidden flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-150 mb-4">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Filtros Avançados</span>
+            <button
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all"
+            >
+              <Filter className="w-4 h-4" />
+              <span>{showMobileFilters ? "Ocultar Filtros" : "Filtrar Eventos"}</span>
+            </button>
+          </div>
+
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left sidebar filters */}
-            <aside className="w-full lg:w-72 bg-white rounded-2xl border border-gray-150 p-6 shrink-0 h-fit space-y-6">
+            <aside className={`w-full lg:w-72 bg-white rounded-2xl border border-gray-150 p-6 shrink-0 h-fit space-y-6 ${showMobileFilters ? "block" : "hidden lg:block"}`}>
               <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                 <h3 className="font-sans font-bold text-sm text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Filter className="w-4.5 h-4.5 text-indigo-650" />
@@ -1734,22 +1749,39 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
                 const total = Math.max(0, subtotal - appliedDiscount);
 
                 // Load all standard + CMS manual payment methods
-                const standardMethods = [
-                  { id: PaymentMethod.MC_EXPRESS, label: "Multicaixa Express", desc: "Pagamento seguro via aplicação móvel Express" },
-                  { id: PaymentMethod.REF_MC, label: "Referência Multicaixa", desc: "Pagamento no ATM / Multicaixa ou Internet Banking" },
-                  { id: PaymentMethod.UNITEL_MONEY, label: "Unitel Money / Afrimoney", desc: "Carteiras móveis de telemóvel instantâneas" },
-                  { id: PaymentMethod.VISA_MASTERCARD, label: "Cartão Internacional (Visa/Mastercard)", desc: "Processamento via Stripe seguro internacional" }
+                const enabledList = cmsConfig?.enabledStandardMethods || [
+                  "Multicaixa Express",
+                  "Referência Multicaixa",
+                  "Unitel Money",
+                  "Visa / Mastercard"
                 ];
 
-                const cmsManualMethods = (cmsConfig?.paymentMethods || [])
-                  .filter(pm => pm.active)
-                  .map(pm => ({
-                    id: pm.id,
-                    label: pm.name,
-                    desc: pm.instructions || `Pagamento manual no banco ${pm.bankName}`
-                  }));
+                const standardMethods = [
+                  { id: PaymentMethod.MC_EXPRESS, label: "Multicaixa Express", desc: "Pagamento seguro via aplicação móvel Express", icon: cmsConfig?.standardMethodIcons?.["Multicaixa Express"] || "📱" },
+                  { id: PaymentMethod.REF_MC, label: "Referência Multicaixa", desc: "Pagamento no ATM / Multicaixa ou Internet Banking", icon: cmsConfig?.standardMethodIcons?.["Referência Multicaixa"] || "🏦" },
+                  { id: PaymentMethod.UNITEL_MONEY, label: "Unitel Money / Afrimoney", desc: "Carteiras móveis de telemóvel instantâneas", icon: cmsConfig?.standardMethodIcons?.["Unitel Money"] || "💸" },
+                  { id: PaymentMethod.VISA_MASTERCARD, label: "Cartão Internacional (Visa/Mastercard)", desc: "Processamento via Stripe seguro internacional", icon: cmsConfig?.standardMethodIcons?.["Visa / Mastercard"] || "💳" }
+                ].filter(m => enabledList.includes(m.id));
+
+                const cmsManualMethods = cmsConfig?.enableManualPayments !== false
+                  ? (cmsConfig?.paymentMethods || [])
+                    .filter(pm => pm.active)
+                    .map(pm => ({
+                      id: pm.id,
+                      label: (pm as any).name || pm.bankName,
+                      desc: pm.instructions || `Pagamento manual no banco ${pm.bankName}`,
+                      icon: pm.icon || "🏦"
+                    }))
+                  : [];
 
                 const allMethods = [...standardMethods, ...cmsManualMethods];
+
+                // Auto-select the first available method if current is not in the list
+                const isCurrentValid = allMethods.some(m => m.id === paymentMethod);
+                if (!isCurrentValid && allMethods.length > 0) {
+                  setPaymentMethod(allMethods[0].id);
+                }
+
                 const selectedManualConfig = (cmsConfig?.paymentMethods || []).find(pm => pm.id === paymentMethod);
                 const isSelectedManual = paymentMethod === PaymentMethod.TRANSF_BANCARIA || 
                                          String(paymentMethod).startsWith("pm-") || 
@@ -1783,6 +1815,11 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
                               <div className="p-1 rounded-full border border-gray-300 bg-white shrink-0 mt-0.5 flex items-center justify-center">
                                 <div className={`w-2.5 h-2.5 rounded-full ${paymentMethod === method.id ? "bg-indigo-600" : "bg-transparent"}`}></div>
                               </div>
+                              {method.icon && (method.icon.startsWith("http://") || method.icon.startsWith("https://") || method.icon.startsWith("data:image/")) ? (
+                                <img src={method.icon} alt="" className="w-6 h-6 object-contain shrink-0 rounded-md border" referrerPolicy="no-referrer" />
+                              ) : (
+                                <span className="text-xl shrink-0">{method.icon || "🏦"}</span>
+                              )}
                               <div>
                                 <p className="font-bold text-xs text-gray-900">{method.label}</p>
                                 <p className="text-[10px] text-gray-400 leading-snug">{method.desc}</p>

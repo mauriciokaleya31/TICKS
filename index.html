@@ -14,6 +14,75 @@
         } catch (e) {
           console.warn("Could not patch window.fetch:", e);
         }
+
+        // Polyfill process and its event listener methods for libraries expecting a Node environment or global emitter
+        try {
+          if (typeof window !== 'undefined') {
+            if (!window.process) {
+              window.process = {
+                env: { NODE_ENV: 'production' },
+                listeners: function() { return []; },
+                on: function() { return this; },
+                off: function() { return this; },
+                emit: function() { return this; },
+                addListener: function() { return this; },
+                removeListener: function() { return this; },
+                browser: true
+              };
+            } else {
+              if (!window.process.listeners) window.process.listeners = function() { return []; };
+              if (!window.process.on) window.process.on = function() { return this; };
+              if (!window.process.off) window.process.off = function() { return this; };
+              if (!window.process.emit) window.process.emit = function() { return this; };
+              if (!window.process.addListener) window.process.addListener = function() { return this; };
+              if (!window.process.removeListener) window.process.removeListener = function() { return this; };
+            }
+          }
+        } catch (e) {
+          console.warn("Could not patch global process emitter:", e);
+        }
+
+        // Polyfill matchMedia and standard listener compatibility for browser environments
+        try {
+          if (typeof window !== 'undefined') {
+            if (!window.matchMedia) {
+              window.matchMedia = function() {
+                return {
+                  matches: false,
+                  media: '',
+                  onchange: null,
+                  addListener: function() {},
+                  removeListener: function() {},
+                  addEventListener: function() {},
+                  removeEventListener: function() {},
+                  dispatchEvent: function() { return false; }
+                };
+              };
+            } else {
+              var originalMatchMedia = window.matchMedia;
+              window.matchMedia = function(query) {
+                var mql = originalMatchMedia(query);
+                if (mql) {
+                  if (!mql.addListener) mql.addListener = function() {};
+                  if (!mql.removeListener) mql.removeListener = function() {};
+                  if (!mql.addEventListener) mql.addEventListener = function() {};
+                  if (!mql.removeEventListener) mql.removeEventListener = function() {};
+                }
+                return mql;
+              };
+            }
+          }
+        } catch (e) {
+          console.warn("Could not patch matchMedia listeners:", e);
+        }
+
+        // Safe screen orientation listeners polyfill
+        try {
+          if (typeof window !== 'undefined' && window.screen && window.screen.orientation) {
+            if (!window.screen.orientation.addListener) window.screen.orientation.addListener = function() {};
+            if (!window.screen.orientation.removeListener) window.screen.orientation.removeListener = function() {};
+          }
+        } catch (e) {}
       })();
     </script>
     <meta charset="UTF-8" />
