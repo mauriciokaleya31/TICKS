@@ -138,7 +138,7 @@ service cloud.firestore {
         (resource.data.organizerId == request.auth.uid && isValidEvent(request.resource.data) && request.resource.data.approved == resource.data.approved && request.resource.data.featured == resource.data.featured) || 
         isAdmin()
       );
-      allow delete: if isAdmin();
+      allow delete: if isSignedIn() && (resource.data.organizerId == request.auth.uid || isAdmin());
     }
 
     // 3. Orders & Tickets
@@ -161,7 +161,7 @@ service cloud.firestore {
     match /coupons/{couponId} {
       allow read: if true; // Public access to apply at checkout
       allow create, update: if isSignedIn() && (isOrganizer() || isAdmin()) && isValidCoupon(request.resource.data);
-      allow delete: if isAdmin();
+      allow delete: if isSignedIn() && (isOrganizer() || isAdmin());
     }
 
     // 5. Event Reviews

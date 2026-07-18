@@ -52,8 +52,10 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
     coupons, 
     addCoupon, 
     toggleCouponActive, 
+    deleteCoupon,
     createEvent, 
     updateEvent, 
+    deleteEvent,
     validateTicketQRCode, 
     formatCurrency 
   } = useApp();
@@ -106,12 +108,23 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
     let sold = 0;
     let totalStock = 0;
     let revenue = 0;
+    let approvedEventsCount = 0;
+    let pendingEventsCount = 0;
+    let rejectedEventsCount = 0;
     
     organizerEvents.forEach(e => {
+      if (e.approved) {
+        approvedEventsCount++;
+      } else if (e.rejected) {
+        rejectedEventsCount++;
+      } else {
+        pendingEventsCount++;
+      }
+
       e.ticketTypes.forEach(t => {
-        sold += t.soldQuantity;
-        totalStock += t.totalQuantity;
-        revenue += t.soldQuantity * t.price;
+        sold += t.soldQuantity || 0;
+        totalStock += t.totalQuantity || 0;
+        revenue += (t.soldQuantity || 0) * (t.price || 0);
       });
     });
 
@@ -119,6 +132,9 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
 
     return {
       totalEvents: organizerEvents.length,
+      approvedEvents: approvedEventsCount,
+      pendingEvents: pendingEventsCount,
+      rejectedEvents: rejectedEventsCount,
       ticketsSold: sold,
       totalCapacity: totalStock,
       occupancyRate,
@@ -368,34 +384,59 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
           {activeTab === "dashboard" && (
             <div className="space-y-8">
               {/* Core metrics strip */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+                <div className="bg-white p-4 rounded-2xl border border-gray-150 shadow-sm space-y-1.5 text-left hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Eventos Ativos</span>
                     <Calendar className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <p className="text-xl font-black text-gray-900">{metrics.totalEvents}</p>
+                  <p className="text-xl font-black text-gray-900">{metrics.approvedEvents}</p>
+                  <p className="text-[9px] text-gray-400 font-bold">Publicados online</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
+
+                <div className="bg-white p-4 rounded-2xl border border-gray-150 shadow-sm space-y-1.5 text-left hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Em Homologação</span>
+                    <Clock className="w-4 h-4 text-amber-500 animate-pulse" />
+                  </div>
+                  <p className="text-xl font-black text-amber-500">{metrics.pendingEvents}</p>
+                  <p className="text-[9px] text-amber-500/80 font-bold">Pendente aprovação</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-gray-150 shadow-sm space-y-1.5 text-left hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Recusados</span>
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                  </div>
+                  <p className="text-xl font-black text-red-500">{metrics.rejectedEvents}</p>
+                  <p className="text-[9px] text-red-400 font-bold">Necessita correção</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-gray-150 shadow-sm space-y-1.5 text-left hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Bilhetes Vendidos</span>
                     <Users className="w-4 h-4 text-emerald-600" />
                   </div>
                   <p className="text-xl font-black text-gray-900">{metrics.ticketsSold} <span className="text-xs text-gray-400 font-medium">/ {metrics.totalCapacity}</span></p>
+                  <p className="text-[9px] text-gray-400 font-bold">Capacidade total</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
+
+                <div className="bg-white p-4 rounded-2xl border border-gray-150 shadow-sm space-y-1.5 text-left hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Taxa Ocupação</span>
                     <TrendingUp className="w-4 h-4 text-emerald-600" />
                   </div>
                   <p className="text-xl font-black text-gray-900">{metrics.occupancyRate}%</p>
+                  <p className="text-[9px] text-gray-400 font-bold">Média de ocupação</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
+
+                <div className="bg-white p-4 rounded-2xl border border-gray-150 shadow-sm space-y-1.5 text-left hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Faturação Ilíquida</span>
                     <DollarSign className="w-4 h-4 text-emerald-600" />
                   </div>
                   <p className="text-xl font-black font-mono text-emerald-600">{formatCurrency(metrics.grossRevenue)}</p>
+                  <p className="text-[9px] text-gray-400 font-bold">Receita bruta gerada</p>
                 </div>
               </div>
 
@@ -479,9 +520,15 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
                             <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] border ${
                               evt.approved 
                                 ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
-                                : "bg-amber-50 text-amber-600 border-amber-100 animate-pulse"
+                                : evt.rejected
+                                  ? "bg-red-50 text-red-600 border-red-100 font-extrabold"
+                                  : "bg-amber-50 text-amber-600 border-amber-100 animate-pulse"
                             }`}>
-                              {evt.approved ? "Aprovado" : "Pendente Aprovação"}
+                              {evt.approved 
+                                ? "Aprovado" 
+                                : evt.rejected 
+                                  ? "Recusado / Correção" 
+                                  : "Pendente Aprovação"}
                             </span>
                           </div>
                           <p className="text-gray-400 text-xs flex items-center gap-1">
@@ -501,6 +548,19 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
                           <Copy className="w-4 h-4" />
                           <span className="hidden sm:inline">Duplicar</span>
                         </button>
+                        
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Tem a certeza que deseja excluir permanentemente o evento '${evt.title}'?`)) {
+                              deleteEvent(evt.id);
+                            }
+                          }}
+                          className="p-2 bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 border border-red-100 rounded-lg transition-colors flex items-center justify-center"
+                          title="Excluir Evento"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+
                         <button
                           onClick={() => onNavigate("event-detail", { eventId: evt.id })}
                           className="px-4 py-2 bg-gray-900 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl"
@@ -1024,16 +1084,30 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
                             Desconto: {cp.discountType === "percentage" ? `${cp.discountValue}%` : formatCurrency(cp.discountValue)} | Usado: {cp.usedCount} vezes
                           </p>
                         </div>
-                        <button
-                          onClick={() => toggleCouponActive(cp.id)}
-                          className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
-                            cp.active 
-                              ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100" 
-                              : "bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200"
-                          }`}
-                        >
-                          {cp.active ? "Ativo" : "Suspenso"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleCouponActive(cp.id)}
+                            className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                              cp.active 
+                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100" 
+                                : "bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200"
+                            }`}
+                          >
+                            {cp.active ? "Ativo" : "Suspenso"}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Deseja realmente eliminar o cupão '${cp.code}'?`)) {
+                                deleteCoupon(cp.id);
+                              }
+                            }}
+                            className="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 border border-red-100 rounded-lg transition-colors flex items-center justify-center"
+                            title="Excluir Cupão"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

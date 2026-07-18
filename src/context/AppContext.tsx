@@ -112,6 +112,7 @@ interface AppContextProps {
   // Coupons & Discounts
   addCoupon: (coupon: Omit<Coupon, "id" | "usedCount">) => void;
   toggleCouponActive: (id: string) => void;
+  deleteCoupon: (id: string) => void;
   // Reviews
   addReview: (eventId: string, rating: number, comment: string) => void;
   getEventReviews: (eventId: string) => Review[];
@@ -267,7 +268,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const unsubEvents = onSnapshot(collection(db, "events"), (snapshot) => {
       const items: Event[] = [];
       snapshot.forEach(doc => items.push(doc.data() as Event));
-      if (items.length > 0) setEvents(items);
+      setEvents(items);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, "events");
     });
@@ -275,7 +276,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const unsubCoupons = onSnapshot(collection(db, "coupons"), (snapshot) => {
       const items: Coupon[] = [];
       snapshot.forEach(doc => items.push(doc.data() as Coupon));
-      if (items.length > 0) setCoupons(items);
+      setCoupons(items);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, "coupons");
     });
@@ -283,7 +284,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const unsubBlogs = onSnapshot(collection(db, "blogs"), (snapshot) => {
       const items: BlogPost[] = [];
       snapshot.forEach(doc => items.push(doc.data() as BlogPost));
-      if (items.length > 0) setBlogs(items);
+      setBlogs(items);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, "blogs");
     });
@@ -291,7 +292,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const unsubFaqs = onSnapshot(collection(db, "faqs"), (snapshot) => {
       const items: FAQItem[] = [];
       snapshot.forEach(doc => items.push(doc.data() as FAQItem));
-      if (items.length > 0) setFaqs(items);
+      setFaqs(items);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, "faqs");
     });
@@ -358,7 +359,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         unsubUsers = onSnapshot(collection(db, "users"), (snapshot) => {
           const items: User[] = [];
           snapshot.forEach(doc => items.push(doc.data() as User));
-          if (items.length > 0) setUsers(items);
+          setUsers(items);
         }, (error) => {
           handleFirestoreError(error, OperationType.LIST, "users");
         });
@@ -785,12 +786,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // --------------------------------------------------------------------------
 
   const createEvent = (evtData: any): Event => {
+    const formattedTicketTypes = (evtData.ticketTypes || []).map((t: any) => ({
+      ...t,
+      soldQuantity: t.soldQuantity || 0
+    }));
+
     const newEvent: Event = {
       ...evtData,
+      ticketTypes: formattedTicketTypes,
       id: evtData.id || `event-${Date.now()}`,
       organizerId: evtData.organizerId || currentUser?.id || "user-org-1",
       organizerName: evtData.organizerName || currentUser?.name || "Organizador",
-      approved: evtData.approved !== undefined ? evtData.approved : true,
+      approved: evtData.approved !== undefined ? evtData.approved : false,
+      rejected: evtData.rejected !== undefined ? evtData.rejected : false,
       featured: evtData.featured || false,
       popular: evtData.popular || false
     };
@@ -818,7 +826,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const approveEvent = (eventId: string, approved: boolean) => {
     const found = events.find(e => e.id === eventId);
     if (found) {
-      const updated = { ...found, approved };
+      const updated = { ...found, approved, rejected: !approved };
       setDoc(doc(db, "events", eventId), updated).catch(e => safeErrorLog(e, "approveEvent"));
       setEvents(prev => prev.map(e => e.id === eventId ? updated : e));
     }
@@ -1174,6 +1182,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteCoupon = (id: string) => {
+    deleteDoc(doc(db, "coupons", id)).catch(e => safeErrorLog(e, "deleteCoupon"));
+    setCoupons(prev => prev.filter(c => c.id !== id));
+  };
+
   const addReview = (eventId: string, rating: number, comment: string) => {
     const newReview: Review = {
       id: `rev-${Date.now()}`,
@@ -1247,6 +1260,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       validateTicketQRCode,
       addCoupon,
       toggleCouponActive,
+      deleteCoupon,
       addReview,
       getEventReviews,
       deleteUser,

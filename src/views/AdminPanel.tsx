@@ -224,42 +224,50 @@ export default function AdminPanel() {
     <div className="bg-gray-50 flex-grow" id="admin-panel-portal">
       
       {/* Admin header */}
-      <section className="bg-gradient-to-r from-red-950 via-slate-900 to-red-950 text-white py-12">
+      <section className="bg-gradient-to-r from-slate-950 via-slate-900 to-red-950 text-white py-12 border-b border-red-500/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="p-4 bg-red-500/15 rounded-2xl text-red-400 border border-red-500/20">
+            <div className="p-4 bg-red-500/10 rounded-2xl text-red-500 border border-red-500/20 shadow-inner">
               <ShieldCheck className="w-8 h-8" />
             </div>
-            <div className="space-y-0.5 text-left">
-              <h2 className="text-xl sm:text-2xl font-sans font-bold tracking-tight">Painel Administrativo Central</h2>
-              <p className="text-gray-400 text-xs">Supervisão de pagamentos, taxas de comissão SaaS e homologações de espetáculos pendentes.</p>
+            <div className="space-y-1 text-left">
+              <div className="flex items-center gap-2">
+                <span className="bg-red-500/20 text-red-400 font-extrabold text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border border-red-500/30">Geral</span>
+                <span className="text-[10px] text-gray-400 font-bold">• Angola</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-sans font-black tracking-tight text-white">Painel de Administração SaaS</h2>
+              <p className="text-gray-400 text-xs font-medium">Controlo centralizado de transações, comissões, homologações de espetáculos e personalização do portal (CMS).</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3">
-              <Percent className="w-5 h-5 text-red-400" />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-2.5 flex items-center gap-3 shadow-sm">
+              <div className="p-1.5 bg-red-500/20 rounded-lg">
+                <Percent className="w-4 h-4 text-red-400" />
+              </div>
               <div className="text-left">
-                <span className="text-[10px] text-gray-400 font-bold uppercase block">Comissão Geral SaaS</span>
-                <input 
-                  type="number" 
-                  value={globalCommissionRate} 
-                  onChange={(e) => setGlobalCommissionRate(Number(e.target.value))}
-                  className="bg-transparent border-none text-white font-bold text-sm focus:outline-none w-14 font-mono" 
-                />
-                <span className="text-white font-bold text-xs">%</span>
+                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Taxa de Serviço</span>
+                <div className="flex items-center gap-1">
+                  <input 
+                    type="number" 
+                    value={globalCommissionRate} 
+                    onChange={(e) => setGlobalCommissionRate(Number(e.target.value))}
+                    className="bg-transparent border-none text-white font-extrabold text-sm focus:outline-none w-10 font-mono" 
+                  />
+                  <span className="text-white font-bold text-xs">%</span>
+                </div>
               </div>
             </div>
 
             <button
               type="button"
               onClick={async () => {
-                if (window.confirm("ATENÇÃO: Tem certeza absoluta que deseja ZERAR O SISTEMA? Isso irá excluir permanentemente todos os eventos, faturas, vendas, e utilizadores do banco de dados para poder começar do absoluto zero.")) {
+                if (window.confirm("⚠️ ATENÇÃO MÁXIMA: Tem certeza absoluta que deseja ZERAR O SISTEMA? Isso irá excluir permanentemente todos os eventos, faturas, vendas, blogs, FAQs e utilizadores do banco de dados para poder começar do absoluto zero.")) {
                   await resetSystemToZero();
                   alert("O sistema foi restaurado com sucesso! Tudo foi redefinido para o absoluto zero.");
                 }
               }}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-6 rounded-2xl text-xs flex items-center gap-2 shadow-lg shadow-red-600/20 cursor-pointer transition-all border border-red-500/30"
+              className="bg-gradient-to-r from-red-650 to-red-750 hover:from-red-600 hover:to-red-700 text-white font-bold py-3.5 px-6 rounded-2xl text-xs flex items-center gap-2 shadow-lg shadow-red-900/30 hover:shadow-red-900/40 cursor-pointer transition-all border border-red-500/30 active:scale-95"
             >
               <Trash2 className="w-4 h-4 text-white" />
               <span>Zerar Sistema para o Início</span>
@@ -270,62 +278,125 @@ export default function AdminPanel() {
 
       {/* Corporate platform summary indicators */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Volume Transações</span>
-            <p className="text-base sm:text-lg font-black font-mono text-gray-950">{formatCurrency(platformStats.grossTicketRevenue)}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+          <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm flex items-center justify-between text-left transition-all hover:shadow-md hover:border-indigo-100">
+            <div className="space-y-1">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Volume Transacionado</span>
+              <p className="text-lg font-black font-mono text-gray-950">{formatCurrency(platformStats.grossTicketRevenue)}</p>
+            </div>
+            <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
+              <ArrowUpRight className="w-5 h-5" />
+            </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Receita SaaS</span>
-            <p className="text-base sm:text-lg font-black font-mono text-red-600">{formatCurrency(platformStats.commissionsEarned)}</p>
+
+          <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm flex items-center justify-between text-left transition-all hover:shadow-md hover:border-red-100">
+            <div className="space-y-1">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Taxas SaaS Cobradas</span>
+              <p className="text-lg font-black font-mono text-red-600">{formatCurrency(platformStats.commissionsEarned)}</p>
+            </div>
+            <div className="p-3 bg-red-50 rounded-xl text-red-500 animate-pulse">
+              <Sparkles className="w-5 h-5" />
+            </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Bilhetes Vendidos</span>
-            <p className="text-base sm:text-lg font-black text-gray-950">{platformStats.ticketsSold} un</p>
+
+          <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm flex items-center justify-between text-left transition-all hover:shadow-md hover:border-emerald-100">
+            <div className="space-y-1">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Ingressos Vendidos</span>
+              <p className="text-lg font-black text-gray-950 font-mono">{platformStats.ticketsSold} <span className="text-xs text-gray-500 font-normal">un.</span></p>
+            </div>
+            <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
+              <CheckCircle className="w-5 h-5" />
+            </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Reembolsos</span>
-            <p className="text-base sm:text-lg font-black font-mono text-gray-400">{formatCurrency(platformStats.refunds)}</p>
+
+          <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm flex items-center justify-between text-left transition-all hover:shadow-md hover:border-amber-100">
+            <div className="space-y-1">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Devoluções e Reembolsos</span>
+              <p className="text-lg font-black font-mono text-amber-600">{formatCurrency(platformStats.refunds)}</p>
+            </div>
+            <div className="p-3 bg-amber-50 rounded-xl text-amber-500">
+              <Ban className="w-5 h-5" />
+            </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Utilizadores</span>
-            <p className="text-base sm:text-lg font-black text-gray-950">{platformStats.totalUsers} contas</p>
+
+          <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm flex items-center justify-between text-left transition-all hover:shadow-md hover:border-teal-100">
+            <div className="space-y-1">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Base de Clientes</span>
+              <p className="text-lg font-black text-gray-950 font-mono">{platformStats.totalUsers} <span className="text-xs text-gray-500 font-normal">registos</span></p>
+            </div>
+            <div className="p-3 bg-teal-50 rounded-xl text-teal-600">
+              <Users className="w-5 h-5" />
+            </div>
           </div>
         </div>
 
         {/* Tab Selection */}
         <div className="flex flex-col lg:flex-row gap-8">
           
-          <aside className="w-full lg:w-64 bg-white rounded-2xl border border-gray-150 p-2 lg:p-4 shrink-0 h-fit flex lg:flex-col overflow-x-auto lg:overflow-visible gap-1 lg:gap-1.5 scrollbar-none snap-x">
+          <aside className="w-full lg:w-72 bg-white rounded-2xl border border-gray-150 p-4 shrink-0 h-fit space-y-5 flex lg:flex-col overflow-x-auto lg:overflow-visible scrollbar-none snap-x text-left">
             {[
-              { id: "approvals", label: `Homologação Eventos (${pendingEventsQueue.length})`, icon: FileCheck },
-              { id: "pending_payments", label: `Aprovações Pagamento (${pendingOrders.length})`, icon: CreditCard },
-              { id: "cms_header_footer", label: "CMS: Cabeçalho & Rodapé", icon: Layout },
-              { id: "cms_slider", label: "CMS: Slider Principal", icon: ImageIcon },
-              { id: "cms_categories", label: "CMS: Categorias de Eventos", icon: Tag },
-              { id: "cms_pages_help", label: "CMS: Sobre & Ajuda / FAQs", icon: HelpCircle },
-              { id: "cms_blog", label: "CMS: Sistema de Blog", icon: BookOpen },
-              { id: "cms_payments", label: "CMS: Configs Pagamento", icon: Settings },
-              { id: "financials", label: "Gestão Financeira & SaaS", icon: CreditCard },
-              { id: "users", label: "Utilizadores & Controlo", icon: Users },
-              { id: "metrics", label: "Relatórios & Estatísticas", icon: Activity }
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`snap-start shrink-0 whitespace-nowrap lg:w-full lg:text-left flex items-center justify-center lg:justify-start gap-2.5 lg:gap-3 px-4 py-2.5 lg:py-3 text-xs font-bold rounded-xl transition-all ${
-                    activeTab === item.id 
-                      ? "bg-red-650 text-white shadow-md shadow-red-650/10" 
-                      : "text-gray-650 hover:bg-gray-55 hover:text-gray-900"
-                  }`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+              {
+                title: "Validações e Fila",
+                items: [
+                  { id: "approvals", label: "Homologação de Shows", badge: pendingEventsQueue.length, icon: FileCheck, badgeColor: "bg-amber-100 text-amber-800" },
+                  { id: "pending_payments", label: "Aprovações de Depósito", badge: pendingOrders.length, icon: CreditCard, badgeColor: "bg-red-150 text-red-700" },
+                ]
+              },
+              {
+                title: "Configurações CMS",
+                items: [
+                  { id: "cms_header_footer", label: "Cabeçalho & Rodapé", icon: Layout },
+                  { id: "cms_slider", label: "Slider Principal", icon: ImageIcon },
+                  { id: "cms_categories", label: "Categorias de Eventos", icon: Tag },
+                  { id: "cms_pages_help", label: "Sobre, Termos & FAQs", icon: HelpCircle },
+                  { id: "cms_blog", label: "Sistema de Blog", icon: BookOpen },
+                  { id: "cms_payments", label: "Configs de Pagamento", icon: Settings },
+                ]
+              },
+              {
+                title: "Controlo e Métricas",
+                items: [
+                  { id: "financials", label: "Gestão Financeira & SaaS", icon: LineChart },
+                  { id: "users", label: "Utilizadores & Moderação", icon: Users },
+                  { id: "metrics", label: "Relatórios & Estatísticas", icon: Activity },
+                ]
+              }
+            ].map((group, groupIdx) => (
+              <div key={groupIdx} className="space-y-1.5 shrink-0 flex flex-row lg:flex-col items-center lg:items-stretch gap-1.5 lg:gap-0 w-auto lg:w-full">
+                {/* Section Header */}
+                <span className="hidden lg:block text-[9px] font-extrabold uppercase tracking-widest text-gray-400 px-3 pt-2 first:pt-0">
+                  {group.title}
+                </span>
+
+                <div className="flex flex-row lg:flex-col gap-1 lg:gap-1 w-full">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`snap-start shrink-0 whitespace-nowrap lg:w-full lg:text-left flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-all ${
+                          isActive 
+                            ? "bg-red-650 text-white shadow-md shadow-red-650/15" 
+                            : "text-gray-650 hover:bg-gray-50 hover:text-gray-950"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-gray-400"}`} />
+                          <span>{item.label}</span>
+                        </div>
+                        {item.badge !== undefined && item.badge > 0 && (
+                          <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-extrabold ${isActive ? "bg-white text-red-650" : item.badgeColor || "bg-gray-100 text-gray-600"}`}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </aside>
 
           {/* Tab contents */}
@@ -356,7 +427,12 @@ export default function AdminPanel() {
                           <div className="flex items-center gap-4">
                             <img src={evt.image} className="w-16 h-16 rounded-xl object-cover shrink-0 border" alt="" />
                             <div>
-                              <span className="bg-indigo-50 text-indigo-650 font-bold text-[9px] uppercase px-2 py-0.5 rounded">{evt.category}</span>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="bg-indigo-50 text-indigo-650 font-bold text-[9px] uppercase px-2 py-0.5 rounded">{evt.category}</span>
+                                {evt.rejected && (
+                                  <span className="bg-red-50 text-red-600 font-bold text-[9px] uppercase px-2 py-0.5 rounded">Já Rejeitado</span>
+                                )}
+                              </div>
                               <h4 className="font-sans font-bold text-base text-gray-950 mt-1">{evt.title}</h4>
                               <p className="text-[11px] text-gray-500">{evt.city} - {evt.location} | Por: <span className="font-semibold">{evt.organizerName}</span></p>
                             </div>

@@ -90,6 +90,7 @@ export interface Event {
   featured: boolean;
   popular: boolean;
   approved: boolean; // Managed by Admin
+  rejected?: boolean; // If explicitly rejected by Admin
   commissionRate?: number; // Override general platform commission
 }
 
