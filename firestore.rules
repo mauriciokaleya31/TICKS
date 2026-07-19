@@ -36,5 +36,9 @@ service cloud.firestore {
     match /cms_configs/{configId} {
       allow read, write: if true;
     }
+
+    match /support_messages/{messageId} {
+      allow read, write: if true;
+    }
   }
 }

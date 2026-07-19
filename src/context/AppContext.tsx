@@ -12,7 +12,9 @@ import {
   BlogPost, 
   FAQItem, 
   PaymentMethod,
-  CMSConfig
+  CMSConfig,
+  SupportMessage,
+  SupportReply
 } from "../types";
 import { 
   initialEvents, 
@@ -75,6 +77,12 @@ interface AppContextProps {
   deleteFAQ: (id: string) => void;
   // Manual payments admin workflow
   updateManualPaymentStatus: (orderId: string, status: OrderStatus, observations?: string) => void;
+
+  // Support & Ticket System
+  supportMessages: SupportMessage[];
+  sendSupportMessage: (name: string, email: string, subject: string, message: string, senderRole?: string) => Promise<void>;
+  replyToSupportMessage: (messageId: string, replyText: string, senderName: string, senderRole?: "Admin" | "User") => Promise<void>;
+  updateSupportMessageStatus: (messageId: string, status: "Pendente" | "Respondido" | "Fechado", adminNotes?: string) => Promise<void>;
 
   // Auth Functions (Real Firebase Auth)
   registerWithFirebase: (name: string, email: string, password: string, role: UserRole, phone?: string) => Promise<User>;
@@ -176,6 +184,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem("tkt_cmsConfig");
     return saved ? JSON.parse(saved) : defaultCMSConfig;
   });
+
+  const [supportMessages, setSupportMessages] = useState<SupportMessage[]>([]);
 
   const [language, setLanguage] = useState<"PT" | "EN" | "FR">("PT");
   const [firebaseAuthLoading, setFirebaseAuthLoading] = useState<boolean>(true);
@@ -394,6 +404,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       unsubUsersRef.current = () => {};
     };
   }, [currentUser?.id, currentUser?.role, firebaseAuthLoading]);
+
+  // Sync support messages in real-time
+  useEffect(() => {
+    let unsubSupport = () => {};
+
+    const userId = currentUser?.id;
+    const userRole = currentUser?.role;
+    const userEmail = currentUser?.email;
+
+    if (userId && userRole && !firebaseAuthLoading && auth.currentUser && auth.currentUser.uid === userId) {
+      if (userRole === UserRole.ADMIN) {
+        // Admins listen to ALL support messages
+        unsubSupport = onSnapshot(collection(db, "support_messages"), (snapshot) => {
+          const items: SupportMessage[] = [];
+          snapshot.forEach(doc => items.push(doc.data() as SupportMessage));
+          setSupportMessages(items.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        }, (error) => {
+          handleFirestoreError(error, OperationType.LIST, "support_messages");
+        });
+      } else if (userEmail) {
+        // Clients & Organizers listen to their own support messages
+        const supportQuery = query(collection(db, "support_messages"), where("email", "==", userEmail));
+        unsubSupport = onSnapshot(supportQuery, (snapshot) => {
+          const items: SupportMessage[] = [];
+          snapshot.forEach(doc => items.push(doc.data() as SupportMessage));
+          setSupportMessages(items.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        }, (error) => {
+          handleFirestoreError(error, OperationType.LIST, "support_messages");
+        });
+      }
+    } else {
+      // Clear support messages for guest / not logged in
+      setSupportMessages([]);
+    }
+
+    return () => {
+      unsubSupport();
+    };
+  }, [currentUser?.id, currentUser?.role, currentUser?.email, firebaseAuthLoading]);
 
   // Firebase Auth State listener
   useEffect(() => {
@@ -1116,6 +1165,82 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
   };
 
+  const sendSupportMessage = async (name: string, email: string, subject: string, message: string, senderRole: string = "Visitante") => {
+    try {
+      const messageId = "msg_" + Math.random().toString(36).substring(2, 11);
+      const newMessage: SupportMessage = {
+        id: messageId,
+        name,
+        email,
+        senderRole,
+        subject,
+        message,
+        status: "Pendente",
+        createdAt: new Date().toISOString(),
+        replies: []
+      };
+
+      await setDoc(doc(db, "support_messages", messageId), newMessage);
+      
+      // If we are guest/not logged in, we also update our local state so we can see it during the current guest session.
+      if (!currentUser) {
+        setSupportMessages(prev => [newMessage, ...prev]);
+      }
+    } catch (e) {
+      safeErrorLog(e, "sendSupportMessage");
+      throw e;
+    }
+  };
+
+  const replyToSupportMessage = async (messageId: string, replyText: string, senderName: string, senderRole: "Admin" | "User" = "Admin") => {
+    try {
+      const messageDocRef = doc(db, "support_messages", messageId);
+      const messageSnap = await getDoc(messageDocRef);
+      if (!messageSnap.exists()) return;
+
+      const messageData = messageSnap.data() as SupportMessage;
+      const newReply = {
+        id: "rep_" + Math.random().toString(36).substring(2, 11),
+        senderName,
+        senderRole,
+        message: replyText,
+        createdAt: new Date().toISOString()
+      };
+
+      const updatedReplies = [...(messageData.replies || []), newReply];
+      const updatedMessage: SupportMessage = {
+        ...messageData,
+        replies: updatedReplies,
+        status: senderRole === "Admin" ? "Respondido" : "Pendente"
+      };
+
+      await setDoc(messageDocRef, updatedMessage);
+    } catch (e) {
+      safeErrorLog(e, "replyToSupportMessage");
+      throw e;
+    }
+  };
+
+  const updateSupportMessageStatus = async (messageId: string, status: "Pendente" | "Respondido" | "Fechado", adminNotes?: string) => {
+    try {
+      const messageDocRef = doc(db, "support_messages", messageId);
+      const messageSnap = await getDoc(messageDocRef);
+      if (!messageSnap.exists()) return;
+
+      const messageData = messageSnap.data() as SupportMessage;
+      const updatedMessage: SupportMessage = {
+        ...messageData,
+        status,
+        ...(adminNotes !== undefined ? { adminNotes } : {})
+      };
+
+      await setDoc(messageDocRef, updatedMessage);
+    } catch (e) {
+      safeErrorLog(e, "updateSupportMessageStatus");
+      throw e;
+    }
+  };
+
   const validateTicketQRCode = (ticketCode: string) => {
     for (const order of orders) {
       const ticketIndex = order.tickets.findIndex(t => t.ticketCode === ticketCode);
@@ -1236,6 +1361,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateFAQ,
       deleteFAQ,
       updateManualPaymentStatus,
+      
+      // Support System
+      supportMessages,
+      sendSupportMessage,
+      replyToSupportMessage,
+      updateSupportMessageStatus,
       
       // Real Firebase Auth
       registerWithFirebase,

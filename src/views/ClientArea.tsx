@@ -37,10 +37,21 @@ export default function ClientArea({ onNavigate, initialTab = "tickets" }: Clien
     requestRefund, 
     formatCurrency, 
     registerUser,
-    reviews
+    reviews,
+    supportMessages,
+    sendSupportMessage,
+    replyToSupportMessage
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  // Support states
+  const [supportText, setSupportText] = useState("");
+  const [supportSubject, setSupportSubject] = useState("");
+  const [selectedTicketForChat, setSelectedTicketForChat] = useState<any>(null);
+  const [replyText, setReplyText] = useState("");
+  const [supportSuccessMsg, setSupportSuccessMsg] = useState("");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   // Profile forms state
   const [profileName, setProfileName] = useState(currentUser?.name || "");
@@ -64,6 +75,50 @@ export default function ClientArea({ onNavigate, initialTab = "tickets" }: Clien
   const clientOrders = useMemo(() => {
     return orders.filter(o => o.userEmail === currentUser?.email);
   }, [orders, currentUser]);
+
+  const clientTickets = useMemo(() => {
+    return supportMessages.filter(msg => msg.email === currentUser?.email);
+  }, [supportMessages, currentUser]);
+
+  const activeChatTicket = useMemo(() => {
+    if (!selectedTicketForChat) return null;
+    return supportMessages.find(m => m.id === selectedTicketForChat.id) || selectedTicketForChat;
+  }, [supportMessages, selectedTicketForChat]);
+
+  const handleSubmitTicket = async () => {
+    if (!supportSubject.trim() || !supportText.trim()) return;
+    setIsSendingMessage(true);
+    try {
+      await sendSupportMessage(
+        currentUser?.name || "Cliente Registado",
+        currentUser?.email || "",
+        supportSubject,
+        supportText,
+        currentUser?.role || "Cliente"
+      );
+      setSupportSubject("");
+      setSupportText("");
+      setSupportSuccessMsg("O seu ticket de suporte foi aberto com sucesso! A nossa equipa central irá responder em breve.");
+      setTimeout(() => setSupportSuccessMsg(""), 5000);
+    } catch (e) {
+      alert("Erro ao enviar mensagem de suporte.");
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleReply = async () => {
+    if (!replyText.trim() || !activeChatTicket) return;
+    setIsSendingMessage(true);
+    try {
+      await replyToSupportMessage(activeChatTicket.id, replyText, currentUser?.name || "Cliente", "User");
+      setReplyText("");
+    } catch (e) {
+      alert("Erro ao enviar resposta.");
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
 
   const activeTickets = useMemo(() => {
     return clientOrders.filter(o => o.status === OrderStatus.COMPLETADO);
@@ -510,46 +565,205 @@ export default function ClientArea({ onNavigate, initialTab = "tickets" }: Clien
                 <p className="text-gray-500 text-xs">Esclareça dúvidas técnicas diretamente com a nossa equipa central ou solicite estornos de bilhetes ativos.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-gray-150 space-y-4">
-                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider pb-2 border-b border-gray-100 flex items-center gap-1.5">
-                    <MessageSquare className="w-4.5 h-4.5 text-indigo-500" />
-                    <span>Contactar Apoio Técnico</span>
-                  </h4>
-                  <p className="text-xs text-gray-400">Tem alguma dúvida sobre pagamentos ou erro de visualização de bilhetes? Envie-nos uma mensagem direta.</p>
-                  
-                  <textarea
-                    placeholder="Descreva detalhadamente a sua dúvida ou transação para o Apoio de Angola..."
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:border-indigo-500 text-gray-800 h-28"
-                  />
-                  <button
-                    onClick={() => alert("Mensagem de suporte enviada. Um técnico da TicketAngola entrará em contacto nas próximas 2 horas.")}
-                    className="bg-indigo-650 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors"
-                  >
-                    Submeter Pedido
-                  </button>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Column 1 & 2: Main Area (Create Ticket or Chat view) */}
+                <div className="lg:col-span-2 space-y-4">
+                  {activeChatTicket ? (
+                    // Chat view for the selected support ticket
+                    <div className="bg-white p-6 rounded-2xl border border-gray-150 space-y-4 flex flex-col h-[500px]">
+                      <div className="border-b border-gray-150 pb-3 flex items-center justify-between">
+                        <div>
+                          <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                            activeChatTicket.status === "Pendente" 
+                              ? "bg-amber-100 text-amber-800"
+                              : activeChatTicket.status === "Respondido"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {activeChatTicket.status}
+                          </span>
+                          <h4 className="text-sm font-black text-gray-950 mt-1">{activeChatTicket.subject}</h4>
+                          <p className="text-[10px] text-gray-400">Iniciado em: {new Date(activeChatTicket.createdAt).toLocaleString()}</p>
+                        </div>
+                        <button
+                          onClick={() => setSelectedTicketForChat(null)}
+                          className="text-xs text-indigo-600 hover:underline font-bold"
+                        >
+                          Novo Ticket
+                        </button>
+                      </div>
+
+                      {/* Messages scroll area */}
+                      <div className="flex-grow overflow-y-auto space-y-4 pr-1 text-xs flex flex-col">
+                        {/* Initial Message */}
+                        <div className="bg-gray-50 border border-gray-100 p-3 rounded-2xl max-w-[85%] self-start">
+                          <p className="font-bold text-gray-800 text-[10px] mb-1">Você ({activeChatTicket.name})</p>
+                          <p className="text-gray-600 whitespace-pre-wrap">{activeChatTicket.message}</p>
+                        </div>
+
+                        {/* Replies */}
+                        {activeChatTicket.replies?.map((reply: any) => (
+                          <div 
+                            key={reply.id} 
+                            className={`p-3 rounded-2xl max-w-[85%] ${
+                              reply.senderRole === "Admin" 
+                                ? "bg-indigo-50 border border-indigo-100 ml-auto self-end" 
+                                : "bg-gray-50 border border-gray-100 self-start"
+                            }`}
+                          >
+                            <p className="font-bold text-[10px] mb-1">
+                              {reply.senderRole === "Admin" ? "Suporte Técnico 👑" : `Você (${reply.senderName})`}
+                            </p>
+                            <p className="text-gray-600 whitespace-pre-wrap">{reply.message}</p>
+                            <span className="text-[9px] text-gray-400 block mt-1 text-right">
+                              {new Date(reply.createdAt).toLocaleTimeString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Reply form */}
+                      {activeChatTicket.status !== "Fechado" ? (
+                        <div className="border-t border-gray-150 pt-3 flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Escreva a sua resposta..."
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && replyText.trim()) {
+                                handleReply();
+                              }
+                            }}
+                            className="flex-grow bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-indigo-500 text-gray-800"
+                          />
+                          <button
+                            onClick={handleReply}
+                            disabled={!replyText.trim() || isSendingMessage}
+                            className="bg-indigo-650 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-xl transition-colors shrink-0"
+                          >
+                            Enviar
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 text-gray-400 p-3 rounded-xl text-center text-[10px] font-bold uppercase">
+                          Este ticket foi fechado pelo administrador
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    // Create Ticket View
+                    <div className="bg-white p-6 rounded-2xl border border-gray-150 space-y-4">
+                      <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider pb-2 border-b border-gray-100 flex items-center gap-1.5">
+                        <MessageSquare className="w-4.5 h-4.5 text-indigo-500" />
+                        <span>Novo Ticket de Suporte</span>
+                      </h4>
+                      <p className="text-xs text-gray-400">Tem alguma dúvida sobre pagamentos, reembolso ou erro com os seus bilhetes? Abra um ticket.</p>
+                      
+                      {supportSuccessMsg && (
+                        <div className="p-3 bg-green-50 text-green-700 rounded-xl text-xs font-semibold">
+                          {supportSuccessMsg}
+                        </div>
+                      )}
+
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Assunto</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Erro ao baixar bilhete / Não consigo ver factura"
+                            value={supportSubject}
+                            onChange={(e) => setSupportSubject(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-gray-800"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Mensagem Detalhada</label>
+                          <textarea
+                            placeholder="Descreva detalhadamente a sua dúvida para o Apoio Técnico da TicketAngola..."
+                            value={supportText}
+                            onChange={(e) => setSupportText(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:border-indigo-500 text-gray-800 h-28"
+                          />
+                        </div>
+
+                        <button
+                          onClick={handleSubmitTicket}
+                          disabled={!supportSubject.trim() || !supportText.trim() || isSendingMessage}
+                          className="bg-indigo-650 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors w-full"
+                        >
+                          {isSendingMessage ? "A Enviar..." : "Submeter Pedido de Suporte"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Refund rules specifications */}
-                <div className="bg-white p-6 rounded-2xl border border-gray-150 space-y-4">
-                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider pb-2 border-b border-gray-100 flex items-center gap-1.5">
-                    <ShieldAlert className="w-4.5 h-4.5 text-indigo-500" />
-                    <span>Políticas de Reembolso</span>
-                  </h4>
-                  <ul className="space-y-3 text-xs text-gray-500">
-                    <li className="flex gap-2">
-                      <span className="text-indigo-600 font-bold">•</span>
-                      <span>Os estornos devem ser solicitados com um limite mínimo de **48 horas antes** do início das atividades.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-indigo-600 font-bold">•</span>
-                      <span>O processamento do valor depende do método original de compra (geralmente em 3-5 dias úteis).</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-indigo-600 font-bold">•</span>
-                      <span>A comissão de processamento de bilhetes pode ser retida de acordo com a política de cada produtor local.</span>
-                    </li>
-                  </ul>
+                {/* Column 3: Tickets history list & policies */}
+                <div className="space-y-6">
+                  {/* History List */}
+                  <div className="bg-white p-6 rounded-2xl border border-gray-150 space-y-4">
+                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider pb-2 border-b border-gray-100">
+                      Os Seus Pedidos
+                    </h4>
+
+                    {clientTickets.length === 0 ? (
+                      <p className="text-[11px] text-gray-400 text-center py-4">Ainda não enviou nenhuma mensagem de suporte.</p>
+                    ) : (
+                      <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                        {clientTickets.map((ticket) => (
+                          <button
+                            key={ticket.id}
+                            onClick={() => {
+                              setSelectedTicketForChat(ticket);
+                              setReplyText("");
+                            }}
+                            className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-1 ${
+                              activeChatTicket?.id === ticket.id 
+                                ? "bg-indigo-50/70 border-indigo-200 ring-1 ring-indigo-200" 
+                                : "bg-gray-50 border-gray-150 hover:bg-gray-100/70"
+                            }`}
+                          >
+                            <div className="flex justify-between items-start w-full">
+                              <span className="text-[11px] font-black text-gray-950 truncate max-w-[110px]">{ticket.subject}</span>
+                              <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                                ticket.status === "Pendente" 
+                                  ? "bg-amber-100 text-amber-800"
+                                  : ticket.status === "Respondido"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-gray-100 text-gray-800"
+                              }`}>
+                                {ticket.status}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-gray-400 line-clamp-1">{ticket.message}</p>
+                            <span className="text-[9px] text-gray-400 self-end">
+                              {new Date(ticket.createdAt).toLocaleDateString()}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Policies */}
+                  <div className="bg-white p-6 rounded-2xl border border-gray-150 space-y-4">
+                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider pb-2 border-b border-gray-100 flex items-center gap-1.5">
+                      <ShieldAlert className="w-4.5 h-4.5 text-indigo-500" />
+                      <span>Políticas de Reembolso</span>
+                    </h4>
+                    <ul className="space-y-3 text-xs text-gray-500">
+                      <li className="flex gap-2">
+                        <span className="text-indigo-600 font-bold">•</span>
+                        <span>Os estornos devem ser solicitados com um limite mínimo de **48 horas antes** do início das atividades.</span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="text-indigo-600 font-bold">•</span>
+                        <span>O processamento do valor depende do método original de compra (geralmente em 3-5 dias úteis).</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>

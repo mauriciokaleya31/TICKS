@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { UserRole, Order, OrderStatus, Event, EventType } from "../types";
 import AdminCMS from "../components/AdminCMS";
@@ -72,10 +72,69 @@ export default function AdminPanel() {
     deleteUser,
     deleteEvent,
     deleteOrder,
-    resetSystemToZero
+    resetSystemToZero,
+    supportMessages,
+    replyToSupportMessage,
+    updateSupportMessageStatus
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<string>("approvals");
+
+  // Support Admin State
+  const pendingTicketsCount = useMemo(() => {
+    return supportMessages.filter(m => m.status === "Pendente").length;
+  }, [supportMessages]);
+
+  const [supportFilter, setSupportFilter] = useState<"Todos" | "Pendente" | "Respondido" | "Fechado">("Todos");
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [adminReplyText, setAdminReplyText] = useState("");
+  const [adminInternalNotes, setAdminInternalNotes] = useState("");
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [isSendingAdminReply, setIsSendingAdminReply] = useState(false);
+
+  const selectedTicket = useMemo(() => {
+    if (!selectedTicketId) return null;
+    return supportMessages.find(m => m.id === selectedTicketId) || null;
+  }, [supportMessages, selectedTicketId]);
+
+  const filteredTickets = useMemo(() => {
+    if (supportFilter === "Todos") return supportMessages;
+    return supportMessages.filter(m => m.status === supportFilter);
+  }, [supportMessages, supportFilter]);
+
+  useEffect(() => {
+    if (selectedTicket) {
+      setAdminInternalNotes(selectedTicket.adminNotes || "");
+    } else {
+      setAdminInternalNotes("");
+    }
+  }, [selectedTicketId, selectedTicket?.adminNotes]);
+
+  const handleAdminReplySubmit = async () => {
+    if (!selectedTicket || !adminReplyText.trim()) return;
+    setIsSendingAdminReply(true);
+    try {
+      await replyToSupportMessage(selectedTicket.id, adminReplyText, currentUser?.name || "Administrador", "Admin");
+      setAdminReplyText("");
+    } catch (e) {
+      alert("Erro ao responder ao ticket.");
+    } finally {
+      setIsSendingAdminReply(false);
+    }
+  };
+
+  const handleSaveAdminNotes = async () => {
+    if (!selectedTicket) return;
+    setIsSavingNotes(true);
+    try {
+      await updateSupportMessageStatus(selectedTicket.id, selectedTicket.status, adminInternalNotes);
+      alert("Notas internas salvas com sucesso!");
+    } catch (e) {
+      alert("Erro ao salvar notas internas.");
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
   const [globalCommissionRate, setGlobalCommissionRate] = useState(5); // Default 5% commission rate
   const [payoutLogs, setPayoutLogs] = useState([
     { id: "pay-1", org: "Clé Entertainment", val: 820000, date: "2026-07-15", status: "Pago" },
@@ -363,6 +422,7 @@ export default function AdminPanel() {
                 items: [
                   { id: "financials", label: "Gestão Financeira & SaaS", icon: LineChart },
                   { id: "users", label: "Utilizadores & Moderação", icon: Users },
+                  { id: "support_tickets", label: "Apoio e Suporte", badge: pendingTicketsCount, icon: HelpCircle, badgeColor: "bg-amber-100 text-amber-800" },
                   { id: "metrics", label: "Relatórios & Estatísticas", icon: Activity },
                 ]
               }
@@ -870,6 +930,266 @@ export default function AdminPanel() {
                         <span>Online ({platformStats.onlineEvts})</span>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: CUSTOMER SUPPORT AND TICKETS PORTAL */}
+            {activeTab === "support_tickets" && (
+              <div className="space-y-6 text-left">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-sans font-extrabold text-lg text-gray-950">Apoio ao Cliente & Tickets de Suporte</h3>
+                    <p className="text-gray-500 text-xs">
+                      Gerencie e responda às mensagens de suporte técnico e comercial de clientes, organizadores ou visitantes.
+                    </p>
+                  </div>
+                  
+                  {/* Filter controls */}
+                  <div className="flex items-center gap-1.5 bg-gray-100 p-1.5 rounded-xl border border-gray-150">
+                    {(["Todos", "Pendente", "Respondido", "Fechado"] as const).map((filter) => {
+                      const count = filter === "Todos" 
+                        ? supportMessages.length 
+                        : supportMessages.filter(m => m.status === filter).length;
+                      return (
+                        <button
+                          key={filter}
+                          type="button"
+                          onClick={() => {
+                            setSupportFilter(filter);
+                            // Deselect if not present in current list
+                            if (selectedTicket && filter !== "Todos" && selectedTicket.status !== filter) {
+                              setSelectedTicketId(null);
+                            }
+                          }}
+                          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
+                            supportFilter === filter
+                              ? "bg-white text-gray-900 shadow-sm"
+                              : "text-gray-500 hover:text-gray-800"
+                          }`}
+                        >
+                          {filter} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                  {/* Left list panel: 5cols */}
+                  <div className="lg:col-span-5 bg-white rounded-2xl border border-gray-150 p-4 space-y-4 shadow-sm flex flex-col max-h-[600px]">
+                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider pb-2 border-b border-gray-100">
+                      Fila de Atendimento
+                    </h4>
+
+                    {filteredTickets.length === 0 ? (
+                      <div className="flex-grow flex flex-col items-center justify-center py-16 text-center">
+                        <HelpCircle className="w-8 h-8 text-gray-300 mb-2 animate-pulse" />
+                        <p className="text-xs text-gray-400 font-bold">Nenhum ticket encontrado</p>
+                        <p className="text-[10px] text-gray-400">Todos os pedidos desta categoria foram atendidos.</p>
+                      </div>
+                    ) : (
+                      <div className="flex-grow overflow-y-auto space-y-2 pr-1">
+                        {filteredTickets.map((ticket) => {
+                          const isSelected = selectedTicketId === ticket.id;
+                          return (
+                            <button
+                              key={ticket.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedTicketId(ticket.id);
+                                setAdminReplyText("");
+                              }}
+                              className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-1.5 ${
+                                isSelected
+                                  ? "bg-red-50/55 border-red-200 ring-1 ring-red-200"
+                                  : "bg-gray-50 border-gray-150 hover:bg-gray-100/70"
+                              }`}
+                            >
+                              <div className="flex justify-between items-start w-full gap-2">
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                                  ticket.senderRole === "Admin" 
+                                    ? "bg-indigo-100 text-indigo-800"
+                                    : ticket.senderRole === "Organizador"
+                                      ? "bg-amber-100 text-amber-800"
+                                      : "bg-emerald-100 text-emerald-800"
+                                }`}>
+                                  {ticket.senderRole}
+                                </span>
+                                
+                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                                  ticket.status === "Pendente"
+                                    ? "bg-red-100 text-red-800"
+                                    : ticket.status === "Respondido"
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-gray-100 text-gray-800"
+                                }`}>
+                                  {ticket.status}
+                                </span>
+                              </div>
+
+                              <div className="space-y-0.5">
+                                <h5 className="text-xs font-black text-gray-900 truncate">{ticket.subject}</h5>
+                                <p className="text-[10px] font-bold text-gray-550">{ticket.name} ({ticket.email})</p>
+                              </div>
+
+                              <p className="text-[10px] text-gray-400 line-clamp-2 leading-normal">{ticket.message}</p>
+                              
+                              <div className="flex justify-between items-center pt-1 border-t border-gray-100/60 mt-1 text-[9px] text-gray-400">
+                                <span>ID: {ticket.id}</span>
+                                <span>{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Chat & detail panel: 7cols */}
+                  <div className="lg:col-span-7 space-y-4">
+                    {selectedTicket ? (
+                      <div className="bg-white rounded-2xl border border-gray-150 p-6 shadow-sm flex flex-col h-[600px] space-y-4">
+                        {/* Header */}
+                        <div className="border-b border-gray-150 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-black text-gray-900">{selectedTicket.subject}</h4>
+                              <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                                selectedTicket.status === "Pendente"
+                                  ? "bg-red-100 text-red-800"
+                                  : selectedTicket.status === "Respondido"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-gray-100 text-gray-800"
+                              }`}>
+                                {selectedTicket.status}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 font-medium">
+                              De: <span className="font-bold text-gray-800">{selectedTicket.name}</span> ({selectedTicket.email})
+                            </p>
+                            <p className="text-[9px] text-gray-400">Canal: {selectedTicket.senderRole} • Criado em {new Date(selectedTicket.createdAt).toLocaleString()}</p>
+                          </div>
+
+                          {/* Quick Actions / Status selector */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <select
+                              value={selectedTicket.status}
+                              onChange={async (e) => {
+                                try {
+                                  await updateSupportMessageStatus(selectedTicket.id, e.target.value as any);
+                                } catch (err) {
+                                  alert("Erro ao alterar o estado do ticket.");
+                                }
+                              }}
+                              className="bg-gray-50 border border-gray-200 text-gray-800 text-[10px] font-bold rounded-lg px-2 py-1.5 focus:outline-none"
+                            >
+                              <option value="Pendente">Pendente</option>
+                              <option value="Respondido">Respondido</option>
+                              <option value="Fechado">Fechado (Resolvido)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Mid Area: Live chat feed and administrative memo collapsible */}
+                        <div className="flex-grow flex flex-col md:flex-row gap-4 overflow-hidden min-h-0">
+                          {/* Live Chat messages: 3/5 width */}
+                          <div className="flex-grow overflow-y-auto space-y-4 pr-1 text-xs flex flex-col">
+                            {/* Original customer description */}
+                            <div className="bg-gray-50 border border-gray-100 p-3.5 rounded-2xl max-w-[85%] self-start">
+                              <p className="font-bold text-gray-800 text-[10px] mb-1">{selectedTicket.name} ({selectedTicket.senderRole})</p>
+                              <p className="text-gray-650 whitespace-pre-wrap leading-relaxed">{selectedTicket.message}</p>
+                            </div>
+
+                            {/* Ticket Responses / Replies history */}
+                            {selectedTicket.replies?.map((reply) => (
+                              <div
+                                key={reply.id}
+                                className={`p-3.5 rounded-2xl max-w-[85%] flex flex-col ${
+                                  reply.senderRole === "Admin"
+                                    ? "bg-red-50 border border-red-100 ml-auto self-end"
+                                    : "bg-gray-50 border border-gray-100 self-start"
+                                }`}
+                              >
+                                <span className="font-bold text-[10px] text-gray-705 mb-1">
+                                  {reply.senderRole === "Admin" ? "Você (Suporte Técnico) 👑" : `${selectedTicket.name}`}
+                                </span>
+                                <p className="text-gray-650 whitespace-pre-wrap leading-normal">{reply.message}</p>
+                                <span className="text-[9px] text-gray-400 text-right mt-1.5">
+                                  {new Date(reply.createdAt).toLocaleTimeString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Collapsible Administrative observations & notes: 2/5 width */}
+                          <div className="w-full md:w-56 shrink-0 bg-gray-50 border border-gray-150 p-3 rounded-xl space-y-2.5 h-fit flex flex-col justify-between">
+                            <div>
+                              <h5 className="text-[10px] font-bold text-gray-900 uppercase tracking-wider">Notas Internas</h5>
+                              <p className="text-[9px] text-gray-400">Anotações administrativas invisíveis para o cliente.</p>
+                            </div>
+
+                            <textarea
+                              placeholder="Adicione observações de auditoria, reembolsos ou referências de contacto..."
+                              value={adminInternalNotes}
+                              onChange={(e) => setAdminInternalNotes(e.target.value)}
+                              className="w-full bg-white border border-gray-250 rounded-lg p-2 text-[10px] focus:outline-none focus:border-red-500 text-gray-800 h-28"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={handleSaveAdminNotes}
+                              disabled={isSavingNotes}
+                              className="bg-gray-900 hover:bg-black disabled:opacity-50 text-white font-bold text-[9px] px-3 py-1.5 rounded-lg transition-colors w-full"
+                            >
+                              {isSavingNotes ? "A Guardar..." : "Salvar Notas"}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Reply Area footer */}
+                        {selectedTicket.status !== "Fechado" ? (
+                          <div className="border-t border-gray-150 pt-4 space-y-2">
+                            <textarea
+                              placeholder={`Escreva uma resposta oficial para enviar a ${selectedTicket.name}...`}
+                              value={adminReplyText}
+                              onChange={(e) => setAdminReplyText(e.target.value)}
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:border-red-500 text-gray-800 h-16"
+                            />
+                            
+                            <div className="flex justify-between items-center">
+                              <p className="text-[10px] text-gray-400 font-mono">Ao responder, o ticket é marcado como respondido.</p>
+                              
+                              <button
+                                type="button"
+                                onClick={handleAdminReplySubmit}
+                                disabled={!adminReplyText.trim() || isSendingAdminReply}
+                                className="bg-red-650 hover:bg-red-700 disabled:opacity-50 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shadow-red-650/10"
+                              >
+                                {isSendingAdminReply ? "A responder..." : "Submeter Resposta Oficial"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-100 text-gray-400 p-4 rounded-xl text-center text-xs font-bold uppercase tracking-wider">
+                            Este ticket está Fechado • Reabra mudando o estado acima
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-2xl border border-gray-150 p-12 shadow-sm text-center flex flex-col items-center justify-center h-[600px] space-y-4">
+                        <div className="p-4 bg-red-50 text-red-650 rounded-full">
+                          <HelpCircle className="w-8 h-8" />
+                        </div>
+                        <div>
+                          <h4 className="font-extrabold text-gray-950 font-sans text-base">Nenhum Ticket Selecionado</h4>
+                          <p className="text-gray-400 text-xs max-w-sm mt-1">
+                            Selecione um pedido de suporte na fila de atendimento à esquerda para visualizar a conversa e submeter respostas.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

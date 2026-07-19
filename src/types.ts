@@ -269,3 +269,25 @@ export interface FAQItem {
   answer: string;
   category: "Geral" | "Pagamentos" | "Organizadores" | "Reembolsos";
 }
+
+export interface SupportReply {
+  id: string;
+  senderName: string;
+  senderRole: string; // "Admin" | "User"
+  message: string;
+  createdAt: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  name: string;
+  email: string;
+  senderRole: string; // "Cliente" | "Organizador" | "Visitante"
+  subject: string;
+  message: string;
+  status: "Pendente" | "Respondido" | "Fechado";
+  createdAt: string;
+  adminNotes?: string;
+  replies?: SupportReply[];
+}
+

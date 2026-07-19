@@ -213,20 +213,24 @@ export default function Header({ onNavigate, currentView }: HeaderProps) {
                       <UserIcon className="w-4 h-4 text-gray-400" />
                       Minha Área de Cliente
                     </button>
-                    <button
-                      onClick={() => { setProfileDropdownOpen(false); onNavigate("organizer-dashboard"); }}
-                      className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
-                    >
-                      <Briefcase className="w-4 h-4 text-gray-400" />
-                      Área do Organizador
-                    </button>
-                    <button
-                      onClick={() => { setProfileDropdownOpen(false); onNavigate("admin-dashboard"); }}
-                      className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-gray-400" />
-                      Painel de Administração
-                    </button>
+                    {(currentUser.role === UserRole.ORGANIZADOR || currentUser.role === UserRole.ADMIN) && (
+                      <button
+                        onClick={() => { setProfileDropdownOpen(false); onNavigate("organizer-dashboard"); }}
+                        className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
+                      >
+                        <Briefcase className="w-4 h-4 text-gray-400" />
+                        Área do Organizador
+                      </button>
+                    )}
+                    {currentUser.role === UserRole.ADMIN && (
+                      <button
+                        onClick={() => { setProfileDropdownOpen(false); onNavigate("admin-dashboard"); }}
+                        className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-gray-400" />
+                        Painel de Administração
+                      </button>
+                    )}
 
                     <div className="border-t border-white/5 mt-1.5 pt-1.5">
                       <button
@@ -302,29 +306,62 @@ export default function Header({ onNavigate, currentView }: HeaderProps) {
             </div>
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-white/10">
-            <button
-              onClick={() => { setMobileMenuOpen(false); onNavigate("client-dashboard"); }}
-              className="w-full text-center px-4 py-2 text-xs font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg transition-colors flex items-center justify-center gap-2 border border-amber-500/20"
-            >
-              <UserIcon className="w-3.5 h-3.5" />
-              Área do Cliente
-            </button>
-            <button
-              onClick={() => { setMobileMenuOpen(false); onNavigate("organizer-dashboard"); }}
-              className="w-full text-center px-4 py-2 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-colors flex items-center justify-center gap-2 border border-emerald-500/20"
-            >
-              <Briefcase className="w-3.5 h-3.5" />
-              Área do Organizador
-            </button>
-            <button
-              onClick={() => { setMobileMenuOpen(false); onNavigate("admin-dashboard"); }}
-              className="w-full text-center px-4 py-2 text-xs font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors flex items-center justify-center gap-2 border border-red-500/20"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Painel de Administração
-            </button>
-          </div>
+          {currentUser ? (
+            <div className="space-y-2 pt-2 border-t border-white/10">
+              <button
+                onClick={() => { setMobileMenuOpen(false); onNavigate("client-dashboard"); }}
+                className="w-full text-center px-4 py-2 text-xs font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg transition-colors flex items-center justify-center gap-2 border border-amber-500/20"
+              >
+                <UserIcon className="w-3.5 h-3.5" />
+                Área do Cliente
+              </button>
+              {(currentUser.role === UserRole.ORGANIZADOR || currentUser.role === UserRole.ADMIN) && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onNavigate("organizer-dashboard"); }}
+                  className="w-full text-center px-4 py-2 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-colors flex items-center justify-center gap-2 border border-emerald-500/20"
+                >
+                  <Briefcase className="w-3.5 h-3.5" />
+                  Área do Organizador
+                </button>
+              )}
+              {currentUser.role === UserRole.ADMIN && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onNavigate("admin-dashboard"); }}
+                  className="w-full text-center px-4 py-2 text-xs font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors flex items-center justify-center gap-2 border border-red-500/20"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Painel de Administração
+                </button>
+              )}
+              
+              <button
+                onClick={async () => {
+                  setMobileMenuOpen(false);
+                  const context = useApp() as any;
+                  if (context.logoutWithFirebase) {
+                    await context.logoutWithFirebase();
+                  } else {
+                    switchUserRole(UserRole.CLIENTE);
+                  }
+                  onNavigate("home");
+                }}
+                className="w-full text-center px-4 py-2 text-xs font-semibold text-[#E26850] bg-[#E26850]/5 hover:bg-[#E26850]/15 rounded-lg transition-colors flex items-center justify-center gap-2 border border-[#E26850]/20"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Terminar Sessão
+              </button>
+            </div>
+          ) : (
+            <div className="pt-2 border-t border-white/10">
+              <button
+                onClick={() => { setMobileMenuOpen(false); onNavigate("login-auth"); }}
+                className="w-full text-center px-4 py-2 text-xs font-semibold text-white bg-[#2B7A5D] hover:bg-[#379472] rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <UserIcon className="w-3.5 h-3.5" />
+                Entrar / Criar Conta
+              </button>
+            </div>
+          )}
         </div>
       )}
     </header>

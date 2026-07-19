@@ -70,7 +70,8 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
     registerUser,
     addReview,
     getEventReviews,
-    cmsConfig
+    cmsConfig,
+    sendSupportMessage
   } = useApp();
 
   // Search and Filter States for "Todos os Eventos"
@@ -401,11 +402,11 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
 
                   <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8 z-10 w-full">
 
-                    <h1 className="text-4xl sm:text-6xl font-sans font-bold tracking-tight max-w-4xl mx-auto text-white leading-tight animate-fade-in">
+                    <h1 className="text-2xl sm:text-4xl md:text-6xl font-sans font-bold tracking-tight max-w-4xl mx-auto text-white leading-tight animate-fade-in">
                       {currentSlide.title}
                     </h1>
                     {currentSlide.description && (
-                      <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto font-medium leading-relaxed">
+                      <p className="text-xs sm:text-sm md:text-lg text-gray-300 max-w-2xl mx-auto font-medium leading-relaxed">
                         {currentSlide.description}
                       </p>
                     )}
@@ -442,7 +443,7 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
             })()}
 
             {/* Dynamic Search bar widget overlaid at base */}
-            <div className="relative max-w-3xl mx-auto px-4 -mt-16 z-20">
+            <div className="relative max-w-3xl mx-auto px-4 mt-6 sm:-mt-16 z-20">
               <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl shadow-2xl border border-gray-100 flex flex-col md:flex-row gap-2">
                 <div className="flex-grow flex items-center gap-2.5 px-3">
                   <Search className="w-5 h-5 text-gray-400 shrink-0" />
@@ -1007,7 +1008,7 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
                     <button
                       key={idx}
                       onClick={() => setSelectedCategory(cat)}
-                      className={`text-left text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors w-full ${
+                      className={`text-left text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors w-auto lg:w-full ${
                         selectedCategory === cat 
                           ? "bg-indigo-50 text-indigo-650 font-bold" 
                           : "text-gray-650 hover:bg-gray-50"
@@ -1150,7 +1151,7 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
                           <p className="text-[10px] text-gray-400 font-semibold">{evt.organizerName}</p>
                           <h3 
                             onClick={() => handleViewEventDetail(evt)}
-                            className="font-sans font-bold text-sm sm:text-base text-gray-900 hover:text-indigo-600 transition-colors cursor-pointer line-clamp-1 leading-snug"
+                            className="font-sans font-bold text-sm sm:text-base text-gray-900 hover:text-indigo-600 transition-colors cursor-pointer line-clamp-2 leading-snug"
                           >
                             {evt.title}
                           </h3>
@@ -2441,7 +2442,17 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
                       onSubmit={(e) => {
                         e.preventDefault();
                         if (supportName.trim() && supportEmail.trim() && supportMessage.trim()) {
-                          setSupportSubmitted(true);
+                          sendSupportMessage(
+                            supportName,
+                            supportEmail,
+                            supportSubject || "Pedido de Suporte",
+                            supportMessage,
+                            currentUser ? currentUser.role : "Visitante"
+                          ).then(() => {
+                            setSupportSubmitted(true);
+                          }).catch((err) => {
+                            alert("Ocorreu um erro ao enviar o seu pedido de suporte. Por favor tente novamente.");
+                          });
                         }
                       }}
                       className="space-y-4"
