@@ -397,12 +397,7 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
                   )}
 
                   <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8 z-10 w-full">
-                    {currentSlide.subtitle && (
-                      <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full backdrop-blur-sm text-xs font-semibold tracking-wide text-amber-400">
-                        <Sparkles className="w-3.5 h-3.5 animate-spin text-amber-400" />
-                        <span>{currentSlide.subtitle}</span>
-                      </div>
-                    )}
+
                     <h1 className="text-4xl sm:text-6xl font-sans font-bold tracking-tight max-w-4xl mx-auto text-white leading-tight animate-fade-in">
                       {currentSlide.title}
                     </h1>
@@ -412,15 +407,17 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
                       </p>
                     )}
 
-                    <div className="flex justify-center gap-3 pt-2">
-                      <button 
-                        onClick={() => onNavigate(currentSlide.buttonLink || "events")}
-                        className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-[#0f1115] font-bold rounded-xl shadow-lg shadow-amber-500/10 transition-colors flex items-center gap-2 text-sm cursor-pointer"
-                      >
-                        <span>{currentSlide.buttonText || "Explorar"}</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {currentSlide.buttonText && currentSlide.buttonText.trim() !== "" && (
+                      <div className="flex justify-center gap-3 pt-2">
+                        <button 
+                          onClick={() => onNavigate(currentSlide.buttonLink || "events")}
+                          className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-[#0f1115] font-bold rounded-xl shadow-lg shadow-amber-500/10 transition-colors flex items-center gap-2 text-sm cursor-pointer"
+                        >
+                          <span>{currentSlide.buttonText}</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
 
                     {/* Slides Indicators */}
                     {activeSlides.length > 1 && (
@@ -652,7 +649,7 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
               {/* Slider container: Scroll with snap on different screens */}
               <div 
                 ref={popularSliderRef}
-                className="flex gap-6 overflow-x-auto pb-6 scroll-smooth snap-x snap-mandatory"
+                className="flex gap-6 overflow-x-auto pb-6 scroll-smooth snap-x snap-mandatory scrollbar-none"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {popularEvents.map((evt) => (

@@ -229,26 +229,26 @@ export default function AdminPanel() {
     <div className="bg-gray-50 flex-grow" id="admin-panel-portal">
       
       {/* Admin header */}
-      <section className="bg-gradient-to-r from-slate-950 via-slate-900 to-red-950 text-white py-12 border-b border-red-500/10">
+      <section className="bg-white border-b border-gray-150 py-8 text-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="p-4 bg-red-500/10 rounded-2xl text-red-500 border border-red-500/20 shadow-inner">
+            <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 border border-indigo-100 shadow-sm">
               <ShieldCheck className="w-8 h-8" />
             </div>
             <div className="space-y-1 text-left">
               <div className="flex items-center gap-2">
-                <span className="bg-red-500/20 text-red-400 font-extrabold text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border border-red-500/30">Geral</span>
+                <span className="bg-indigo-50 text-indigo-600 font-extrabold text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-indigo-100">Geral</span>
                 <span className="text-[10px] text-gray-400 font-bold">• Angola</span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-sans font-black tracking-tight text-white">Painel de Administração SaaS</h2>
-              <p className="text-gray-400 text-xs font-medium">Controlo centralizado de transações, comissões, homologações de espetáculos e personalização do portal (CMS).</p>
+              <h2 className="text-xl sm:text-2xl font-sans font-black tracking-tight text-gray-900">Painel de Administração SaaS</h2>
+              <p className="text-gray-500 text-xs font-medium">Controlo centralizado de transações, comissões, homologações de espetáculos e personalização do portal (CMS).</p>
             </div>
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
-            <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-2.5 flex items-center gap-3 shadow-sm">
-              <div className="p-1.5 bg-red-500/20 rounded-lg">
-                <Percent className="w-4 h-4 text-red-400" />
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl px-5 py-2.5 flex items-center gap-3 shadow-sm">
+              <div className="p-1.5 bg-indigo-50 rounded-lg">
+                <Percent className="w-4 h-4 text-indigo-600" />
               </div>
               <div className="text-left">
                 <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Taxa de Serviço</span>
@@ -257,9 +257,9 @@ export default function AdminPanel() {
                     type="number" 
                     value={globalCommissionRate} 
                     onChange={(e) => setGlobalCommissionRate(Number(e.target.value))}
-                    className="bg-transparent border-none text-white font-extrabold text-sm focus:outline-none w-10 font-mono" 
+                    className="bg-transparent border-none text-gray-950 font-extrabold text-sm focus:outline-none w-10 font-mono" 
                   />
-                  <span className="text-white font-bold text-xs">%</span>
+                  <span className="text-gray-600 font-bold text-xs">%</span>
                 </div>
               </div>
             </div>
@@ -272,9 +272,9 @@ export default function AdminPanel() {
                   alert("O sistema foi restaurado com sucesso! Tudo foi redefinido para o absoluto zero.");
                 }
               }}
-              className="bg-gradient-to-r from-red-650 to-red-750 hover:from-red-600 hover:to-red-700 text-white font-bold py-3.5 px-6 rounded-2xl text-xs flex items-center gap-2 shadow-lg shadow-red-900/30 hover:shadow-red-900/40 cursor-pointer transition-all border border-red-500/30 active:scale-95"
+              className="bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 px-5 rounded-2xl text-xs flex items-center gap-2 cursor-pointer transition-all border border-red-100 active:scale-95"
             >
-              <Trash2 className="w-4 h-4 text-white" />
+              <Trash2 className="w-4 h-4 text-red-500" />
               <span>Zerar Sistema para o Início</span>
             </button>
           </div>
@@ -512,6 +512,7 @@ export default function AdminPanel() {
                             onClick={() => {
                               if (window.confirm(`Deseja excluir permanentemente o evento '${evt.title}'?`)) {
                                 deleteEvent(evt.id);
+                                alert("Evento excluído com sucesso!");
                               }
                             }}
                             className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 rounded-lg transition-colors flex items-center justify-center"
@@ -554,6 +555,7 @@ export default function AdminPanel() {
                               onClick={() => {
                                 if (window.confirm(`Deseja excluir permanentemente o evento '${evt.title}'?`)) {
                                   deleteEvent(evt.id);
+                                  alert("Evento excluído com sucesso!");
                                 }
                               }}
                               className="p-1.5 bg-red-50 text-red-650 hover:bg-red-100 border border-red-100 rounded-lg transition-colors flex items-center justify-center"
@@ -781,6 +783,7 @@ export default function AdminPanel() {
                                   onClick={() => {
                                     if (window.confirm(`Tem a certeza que deseja EXCLUIR permanentemente o utilizador '${usr.name}'?`)) {
                                       deleteUser(usr.id);
+                                      alert("Utilizador excluído com sucesso!");
                                     }
                                   }}
                                   className="text-xs font-bold text-red-600 hover:underline"

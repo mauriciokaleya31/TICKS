@@ -186,7 +186,7 @@ function AppContent() {
       <Header onNavigate={handleNavigate} currentView={currentView} />
 
       {/* Main Content Router with extra padding on mobile to accommodate the bottom bar */}
-      <div className="flex-grow pb-24 md:pb-0">
+      <div className="flex-grow pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
         
         {/* Dedicated Login/Register Full Screen View */}
         {isAuthView && (
@@ -262,7 +262,7 @@ function AppContent() {
       </div>
 
       {/* Mobile-Only Premium Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f1115]/95 backdrop-blur-xl border-t border-white/10 px-2 py-2 md:hidden flex justify-around items-center h-20 shadow-[0_-8px_30px_rgba(0,0,0,0.9)] rounded-t-3xl">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f1115]/95 backdrop-blur-xl border-t border-white/10 px-2 pt-2.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] md:hidden flex justify-around items-center h-[calc(5rem+env(safe-area-inset-bottom,0px))] shadow-[0_-8px_30px_rgba(0,0,0,0.9)] rounded-t-3xl">
         {/* Tab 1: Home */}
         <button
           onClick={() => handleNavigate("home")}

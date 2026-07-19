@@ -13,8 +13,14 @@
    ========================================================================== */
 
 /* Outer Body & Base Shell Layouts */
-body,
 html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body,
 #website-public-container,
 #client-area-panel,
 #organizer-area-panel,
@@ -25,6 +31,12 @@ html,
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* Card & Interactive Component Backgrounds */
@@ -54,6 +66,14 @@ textarea {
   background-color: #121416 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   color: #ffffff !important;
+}
+
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 input:focus,

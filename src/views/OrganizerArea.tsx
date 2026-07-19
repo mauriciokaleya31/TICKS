@@ -196,6 +196,7 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
 
     try { playSound.success(); } catch (e) {}
     setEvtSuccessMsg("Evento criado com sucesso e já está ativo no Website Público!");
+    alert("Evento criado e guardado com sucesso!");
     
     // Reset fields
     setEvtTitle("");
@@ -553,6 +554,7 @@ export default function OrganizerArea({ onNavigate }: OrganizerAreaProps) {
                           onClick={() => {
                             if (window.confirm(`Tem a certeza que deseja excluir permanentemente o evento '${evt.title}'?`)) {
                               deleteEvent(evt.id);
+                              alert("Evento excluído com sucesso!");
                             }
                           }}
                           className="p-2 bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 border border-red-100 rounded-lg transition-colors flex items-center justify-center"

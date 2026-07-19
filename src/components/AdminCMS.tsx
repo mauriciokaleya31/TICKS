@@ -621,7 +621,7 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
                         if (editingFaqId === "new") createFAQ({ question: faqQuestion, answer: faqAnswer, category: faqCategory, active: true });
                         else updateFAQ({ id: editingFaqId, question: faqQuestion, answer: faqAnswer, category: faqCategory, active: true });
                         setEditingFaqId(null);
-                        alert("Salvo!");
+                        alert("FAQ guardada com sucesso!");
                       }} className="px-3 py-1 bg-indigo-600 text-white rounded text-[11px]">Salvar FAQ</button>
                     </div>
                   </div>
@@ -637,7 +637,12 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
                       </div>
                       <div className="flex gap-2 shrink-0 self-center">
                         <button onClick={() => { setEditingFaqId(f.id); setFaqQuestion(f.question); setFaqAnswer(f.answer); setFaqCategory(f.category || "Geral"); }} className="text-indigo-650 hover:underline">Editar</button>
-                        <button onClick={() => deleteFAQ(f.id)} className="text-red-500 hover:text-red-700">Deletar</button>
+                        <button onClick={() => {
+                          if (window.confirm("Deseja realmente deletar esta pergunta de FAQ?")) {
+                            deleteFAQ(f.id);
+                            alert("Pergunta de FAQ excluída com sucesso!");
+                          }
+                        }} className="text-red-500 hover:text-red-700">Deletar</button>
                       </div>
                     </div>
                   ))}
@@ -738,7 +743,7 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
                       const post = { title: blogTitle, excerpt: blogExcerpt, content: blogContent, image: blogCover, category: blogCategory, author: blogAuthor, date: new Date().toISOString().split("T")[0] };
                       if (editingBlogId === "new") createBlogPost(post); else updateBlogPost({ id: editingBlogId, ...post });
                       setEditingBlogId(null);
-                      alert("Artigo salvo!");
+                      alert("Artigo de blog publicado/guardado com sucesso!");
                     }}
                     className="px-3 py-1 bg-indigo-600 text-white rounded text-[11px]"
                   >
@@ -765,7 +770,12 @@ export default function AdminCMS({ subTab }: AdminCMSProps) {
                         setBlogCategory(post.category);
                         setBlogAuthor(post.author);
                       }} className="text-indigo-600 hover:underline">Editar</button>
-                      <button onClick={() => deleteBlogPost(post.id)} className="text-red-500 hover:text-red-700">Deletar</button>
+                      <button onClick={() => {
+                        if (window.confirm("Deseja realmente deletar este artigo do blog?")) {
+                          deleteBlogPost(post.id);
+                          alert("Artigo do blog excluído com sucesso!");
+                        }
+                      }} className="text-red-500 hover:text-red-700">Deletar</button>
                     </div>
                   </div>
                 </div>
