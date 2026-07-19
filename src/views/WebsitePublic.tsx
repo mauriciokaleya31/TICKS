@@ -50,6 +50,7 @@ import {
   Upload
 } from "lucide-react";
 import QRCodeGenerator from "../components/QRCodeGenerator";
+import TicketInvoiceModal from "../components/TicketInvoiceModal";
 
 interface WebsitePublicProps {
   currentView: string;
@@ -101,6 +102,8 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
   const [paymentReceiptUrl, setPaymentReceiptUrl] = useState("");
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [documentModalInitialTab, setDocumentModalInitialTab] = useState<"ticket" | "invoice">("ticket");
 
   // Blog states
   const [activeBlogPost, setActiveBlogPost] = useState<BlogPost | null>(null);
@@ -2137,20 +2140,34 @@ export default function WebsitePublic({ currentView, onNavigate, viewParams }: W
 
                   <div className="flex flex-wrap gap-2 justify-center pt-3 border-t border-gray-200">
                     <button
-                      onClick={() => alert("Simulação PDF: O descarregamento do ficheiro PDF com os bilhetes oficiais foi iniciado no seu browser.")}
-                      className="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5"
+                      onClick={() => {
+                        setDocumentModalInitialTab("ticket");
+                        setDocumentModalOpen(true);
+                      }}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
                       <Download className="w-4 h-4" />
                       <span>Descarregar PDF</span>
                     </button>
                     <button
-                      onClick={() => alert(`Simulação Faturação: Fatura-recibo emitida no sistema de faturação angolano e enviada para o email ${completedOrder.userEmail}.`)}
-                      className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5"
+                      onClick={() => {
+                        setDocumentModalInitialTab("invoice");
+                        setDocumentModalOpen(true);
+                      }}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
                       <FileText className="w-4 h-4" />
                       <span>Ver Fatura Eletrónica</span>
                     </button>
                   </div>
+
+                  {/* Document printable modal overlay */}
+                  <TicketInvoiceModal
+                    order={completedOrder}
+                    isOpen={documentModalOpen}
+                    onClose={() => setDocumentModalOpen(false)}
+                    initialTab={documentModalInitialTab}
+                  />
                 </div>
 
                 <div className="pt-6 border-t border-gray-100 flex justify-center gap-4">

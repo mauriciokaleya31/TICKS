@@ -18,9 +18,11 @@ import {
   ArrowRight,
   ShieldAlert,
   Sparkles,
-  CheckCircle
+  CheckCircle,
+  FileText
 } from "lucide-react";
 import QRCodeGenerator from "../components/QRCodeGenerator";
+import TicketInvoiceModal from "../components/TicketInvoiceModal";
 
 interface ClientAreaProps {
   onNavigate: (view: string, params?: any) => void;
@@ -52,6 +54,11 @@ export default function ClientArea({ onNavigate, initialTab = "tickets" }: Clien
   const [selectedRefundOrder, setSelectedRefundOrder] = useState<Order | null>(null);
   const [refundReason, setRefundReason] = useState("");
   const [refundSuccess, setRefundSuccess] = useState(false);
+
+  // Document modal states
+  const [selectedDocumentOrder, setSelectedDocumentOrder] = useState<Order | null>(null);
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [documentModalInitialTab, setDocumentModalInitialTab] = useState<"ticket" | "invoice">("ticket");
 
   // Active tickets versus utilized history
   const clientOrders = useMemo(() => {
@@ -238,11 +245,15 @@ export default function ClientArea({ onNavigate, initialTab = "tickets" }: Clien
                       {/* Ticket footer action panel */}
                       <div className="p-4 bg-gray-55 border-t border-gray-100 flex items-center justify-between">
                         <button
-                          onClick={() => alert("Simulação PDF: Descarregamento iniciado no seu browser.")}
-                          className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                          onClick={() => {
+                            setSelectedDocumentOrder(order);
+                            setDocumentModalInitialTab("ticket");
+                            setDocumentModalOpen(true);
+                          }}
+                          className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          <span>Obter PDF</span>
+                          <span>Obter PDF / Bilhete</span>
                         </button>
                         <button
                           onClick={() => handleTriggerRefundRequest(order)}
@@ -280,6 +291,7 @@ export default function ClientArea({ onNavigate, initialTab = "tickets" }: Clien
                           <th className="px-5 py-4">Método</th>
                           <th className="px-5 py-4">Valor Total</th>
                           <th className="px-5 py-4">Estado</th>
+                          <th className="px-5 py-4 text-center">Documentos</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-y-gray-100 font-medium text-gray-700">
@@ -303,6 +315,36 @@ export default function ClientArea({ onNavigate, initialTab = "tickets" }: Clien
                               }`}>
                                 {order.status}
                               </span>
+                            </td>
+                            <td className="px-5 py-4 text-center">
+                              {order.status === OrderStatus.COMPLETADO ? (
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedDocumentOrder(order);
+                                      setDocumentModalInitialTab("ticket");
+                                      setDocumentModalOpen(true);
+                                    }}
+                                    className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg border border-indigo-100 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
+                                    title="Ver/Descarregar Bilhete"
+                                  >
+                                    🎟️ Bilhete
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedDocumentOrder(order);
+                                      setDocumentModalInitialTab("invoice");
+                                      setDocumentModalOpen(true);
+                                    }}
+                                    className="px-2 py-1 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
+                                    title="Ver/Imprimir Factura"
+                                  >
+                                    🧾 Factura
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 text-[10px] italic">-</span>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -568,6 +610,17 @@ export default function ClientArea({ onNavigate, initialTab = "tickets" }: Clien
           </div>
         </div>
       )}
+
+      {/* Ticket/Invoice digital document modal overlay */}
+      <TicketInvoiceModal
+        order={selectedDocumentOrder}
+        isOpen={documentModalOpen}
+        onClose={() => {
+          setDocumentModalOpen(false);
+          setSelectedDocumentOrder(null);
+        }}
+        initialTab={documentModalInitialTab}
+      />
 
     </div>
   );

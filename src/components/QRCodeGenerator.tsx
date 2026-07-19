@@ -78,7 +78,8 @@ export default function QRCodeGenerator({ value, size = 150, className = "" }: Q
         height={size}
         viewBox="0 0 21 21"
         shapeRendering="crispEdges"
-        className="w-full h-full text-gray-900"
+        style={{ width: size, height: size }}
+        className="text-gray-900"
       >
         <rect width="21" height="21" fill="white" />
         {grid.map((row, rIndex) =>
